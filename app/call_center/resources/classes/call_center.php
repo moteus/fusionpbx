@@ -70,7 +70,6 @@
 						$sql = "select dialplan_uuid, dialplan_name, dialplan_description from v_dialplans ";
 						$sql .= "where dialplan_uuid = '".$this->dialplan_uuid."' ";
 						$sql .= "and domain_uuid = '".$this->domain_uuid."' ";
-						//echo $sql;
 						$prep_statement = $this->db->prepare($sql);
 						if ($prep_statement) {
 							$prep_statement->execute();
@@ -80,21 +79,12 @@
 								$dialplan_name = $row['dialplan_name'];
 								$dialplan_description = $row['dialplan_description'];
 							}
-							else {
-								$this->dialplan_uuid = "";
-							}
 							unset($prep_statement);
-						}
-						else {
-							$this->dialplan_uuid = "";
 						}
 					}
 
 				//build the dialplan array
 					$dialplan["app_uuid"] = "95788e50-9500-079e-2807-fd530b0ea370";
-					if (strlen($this->dialplan_uuid) > 0) {
-						$dialplan["dialplan_uuid"] = $this->dialplan_uuid;
-					}
 					$dialplan["domain_uuid"] = $this->domain_uuid;
 					$dialplan["dialplan_name"] = ($this->queue_name != '') ? $this->queue_name : format_phone($this->destination_number);
 					$dialplan["dialplan_number"] = $this->destination_number;
@@ -165,6 +155,7 @@
 						$action_array = explode(":",$this->queue_timeout_action);
 						$dialplan["dialplan_details"][$y]["domain_uuid"] = $this->domain_uuid;
 						$dialplan["dialplan_details"][$y]["dialplan_detail_tag"] = "action";
+						$dialplan["dialplan_details"][$y]["dialplan_detail_type"] = $action_array[0];
 						$dialplan["dialplan_details"][$y]["dialplan_detail_data"] = substr($this->queue_timeout_action, strlen($action_array[0])+1, strlen($this->queue_timeout_action));
 						$dialplan["dialplan_details"][$y]["dialplan_detail_group"] = "2";
 						$dialplan["dialplan_details"][$y]["dialplan_detail_order"] = $y * 10;
@@ -177,13 +168,17 @@
 					$dialplan["dialplan_details"][$y]["dialplan_detail_group"] = "2";
 					$dialplan["dialplan_details"][$y]["dialplan_detail_order"] = $y * 10;
 
-				//delete the previous details
+				//delete the previous dialplan
 					if(strlen($this->dialplan_uuid) > 0) {
+						$sql = "delete from v_dialplans ";
+						$sql .= "where dialplan_uuid = '".$this->dialplan_uuid."' ";
+						$sql .= "and domain_uuid = '".$this->domain_uuid."' ";
+						$this->db->exec($sql);
+
 						$sql = "delete from v_dialplan_details ";
 						$sql .= "where dialplan_uuid = '".$this->dialplan_uuid."' ";
 						$sql .= "and domain_uuid = '".$this->domain_uuid."' ";
-						//echo $sql."<br><br>";
-						$this->db->exec(check_sql($sql));
+						$this->db->exec($sql);
 						unset($sql);
 					}
 
@@ -197,9 +192,7 @@
 				//save the dialplan
 					$orm = new orm;
 					$orm->name('dialplans');
-					if (isset($dialplan["dialplan_uuid"])) {
-						$orm->uuid($dialplan["dialplan_uuid"]);
-					}
+					$orm->uuid($this->dialplan_uuid);
 					$orm->save($dialplan);
 					$dialplan_response = $orm->message;
 
