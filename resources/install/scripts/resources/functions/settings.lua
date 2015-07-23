@@ -47,35 +47,43 @@
 	function settings(domain_uuid)
 
 		--define the table
-			local array = {}
+			array = {}
 
 		--get the default settings
-			local sql = "SELECT * FROM v_default_settings ";
+			sql = "SELECT * FROM v_default_settings ";
 			sql = sql .. "WHERE default_setting_enabled = 'true' ";
+			sql = sql .. "AND default_setting_category is not null ";
+			sql = sql .. "AND default_setting_subcategory is not null ";
+			sql = sql .. "AND default_setting_name is not null ";
 			sql = sql .. "AND default_setting_value is not null ";
 			sql = sql .. "ORDER BY default_setting_category, default_setting_subcategory ASC";
 			if (debug["sql"]) then
 				freeswitch.consoleLog("notice", "SQL: " .. sql .. "\n");
 			end
-			local x = 1;
-			local previous_category = '';
+			x = 1;
+			previous_category = '';
 			dbh:query(sql, function(row)
 				--variables
-					local setting_uuid = row.default_setting_uuid
-					local category = row.default_setting_category;
-					local subcategory = row.default_setting_subcategory;
-					local name = row.default_setting_name;
-					local value = row.default_setting_value;
+					setting_uuid = row.default_setting_uuid
+					category = row.default_setting_category;
+					subcategory = row.default_setting_subcategory;
+					name = row.default_setting_name;
+					value = row.default_setting_value;
 
 				--add the category array
-					if not array[category] then
+					if (array[category] == nil) then
 						array[category] = {}
 					end
 
 				--add the subcategory array
-					if not array[category][subcategory] then
+					if (array[category][subcategory] == nil) then
 						array[category][subcategory] = {}
 						x = 1;
+					end
+
+				--add the subcategory array
+					if (array[category][subcategory][name] == nil) then
+						array[category][subcategory][name] = {}
 					end
 
 				--set the name and value
@@ -83,8 +91,16 @@
 						array[category][subcategory][x] = {}
 						array[category][subcategory][x] = value;
 					else
-						array[category][subcategory][name] = value;
+						if (value ~= nil) then
+							array[category][subcategory][name] = value;
+						end
 					end
+
+				--set the previous category
+					previous_category = category;
+
+				--set the previous subcategory
+					previous_subcategory = subcategory;
 
 				--increment the value of x
 					x = x + 1;
@@ -95,6 +111,9 @@
 				sql = "SELECT * FROM v_domain_settings ";
 				sql = sql .. "WHERE domain_uuid = '" .. domain_uuid .. "' ";
 				sql = sql .. "AND domain_setting_enabled = 'true' ";
+				sql = sql .. "AND domain_setting_category is not null ";
+				sql = sql .. "AND domain_setting_subcategory is not null ";
+				sql = sql .. "AND domain_setting_name is not null ";
 				sql = sql .. "AND domain_setting_value is not null ";
 				sql = sql .. "ORDER BY domain_setting_category, domain_setting_subcategory ASC ";
 				if (debug["sql"]) then
@@ -109,14 +128,19 @@
 						value = row.domain_setting_value;
 					
 					--add the category array
-						array[category] = {}
-
-					--add the subcategory array
-						array[category][subcategory] = {}
+						if (array[category] == nil) then
+							array[category] = {}
+						end
 	
 					--add the subcategory array
-						if (previous_subcategory ~= subcategory) then
+						if (array[category][subcategory] == nil) then
+							array[category][subcategory] = {}
 							x = 1;
+						end
+	
+					--add the subcategory array
+						if (array[category][subcategory][name] == nil) then
+							array[category][subcategory][name] = {}
 						end
 
 					--set the name and value
@@ -124,7 +148,9 @@
 							array[category][subcategory][x] = {}
 							array[category][subcategory][x] = value;
 						else
-							array[category][subcategory][name] = value;
+							if (value ~= nil) then
+								array[category][subcategory][name] = value;
+							end
 						end
 
 					--set the previous category
@@ -141,5 +167,6 @@
 	end
 
 --example use
-	--result = array['email']['smtp_host']['var'];
+	--array = settings(domain_uuid);
+	--result = array['domain']['template']['name'];
 	--freeswitch.consoleLog("notice", result .. "\n");
