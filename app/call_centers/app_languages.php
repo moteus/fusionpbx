@@ -1,5 +1,16 @@
 <?php
 
+$text['title-call_centers']['en-us'] = "Call Center";
+$text['title-call_centers']['es-cl'] = "Centro de Llamadas";
+$text['title-call_centers']['fr-fr'] = "Centre d'appel";
+$text['title-call_centers']['fr-ca'] = "Centre d' appels";
+$text['title-call_centers']['pt-pt'] = "Centro de Chamadas";
+$text['title-call_centers']['pt-br'] = "Centro de chamadas";
+$text['title-call_centers']['pl'] = "Call Center ";
+$text['title-call_centers']['sv-se'] = "Call Center";
+$text['title-call_centers']['uk'] = "Кол-центр";
+$text['title-call_centers']['de-at'] = "Callcenter";
+
 $text['title-call_center_tier_edit']['en-us'] = "Call Center Tier";
 $text['title-call_center_tier_edit']['es-cl'] = "Editar Nivel de Centro de Llamados";
 $text['title-call_center_tier_edit']['pt-pt'] = "Editar Nível do Call Center";
@@ -99,6 +110,17 @@ $text['title-call_center_agent_add']['pl'] = "Agent w Call Center";
 $text['title-call_center_agent_add']['sv-se'] = "Call Center Agent";
 $text['title-call_center_agent_add']['uk'] = "Оператор кол-центра";
 $text['title-call_center_agent_add']['de-at'] = "Callcenter Agenten";
+
+$text['title-call_center']['en-us'] = "Call Center";
+$text['title-call_center']['es-cl'] = "Centro de Llamadas";
+$text['title-call_center']['fr-fr'] = "Centre d'appel";
+$text['title-call_center']['fr-ca'] = "Centre d' appels";
+$text['title-call_center']['pt-pt'] = "Centro de Chamadas";
+$text['title-call_center']['pt-br'] = "Centro de chamadas";
+$text['title-call_center']['pl'] = "Call Center ";
+$text['title-call_center']['sv-se'] = "Call Center";
+$text['title-call_center']['uk'] = "Кол-центр";
+$text['title-call_center']['de-at'] = "Callcenter";
 
 $text['option-usring']['en-us'] = "us-ring";
 $text['option-usring']['es-cl'] = "us-ring";
