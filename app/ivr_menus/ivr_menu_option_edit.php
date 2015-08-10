@@ -138,6 +138,9 @@ if (count($_POST)>0 && strlen($_POST["persistformvar"]) == 0) {
 		} //if ($_POST["persistformvar"] != "true")
 } //(count($_POST)>0 && strlen($_POST["persistformvar"]) == 0)
 
+//initialize the destinations object
+	$destination = new destinations;
+
 //pre-populate the form
 	if (count($_GET)>0 && $_POST["persistformvar"] != "true") {
 		$ivr_menu_option_uuid = $_GET["id"];
@@ -278,13 +281,12 @@ if (count($_POST)>0 && strlen($_POST["persistformvar"]) == 0) {
 	echo "</td>\n";
 	echo "<td class='vtable' align='left'>\n";
 
-	//switch_select_destination($select_type, $select_label, $select_name, $select_value, $select_style, $action='')
-	$tmp_select_value = '';
+	$destination_action = '';
 	if (strlen($ivr_menu_option_action.$ivr_menu_option_param) > 0) {
-		$tmp_select_value = $ivr_menu_option_action.':'.$ivr_menu_option_param;
+		$destination_action = $ivr_menu_option_action.':'.$ivr_menu_option_param;
 	}
-	switch_select_destination("ivr", $ivr_menu_options_label, "ivr_menu_option_param", $tmp_select_value, "width: 350px;", $ivr_menu_option_action);
-	unset($tmp_select_value);
+	echo $destination->select('ivr', 'ivr_menu_option_param', $destination_action);
+	unset($destination_action);
 
 	echo "<br />\n";
 	echo $text['description-destination']."\n";
