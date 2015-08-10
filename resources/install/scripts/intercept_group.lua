@@ -34,10 +34,10 @@
 	require "resources.functions.config";
 
 --add the function
-	dofile(scripts_dir.."/resources/functions/explode.lua");
+	require "resources.functions.explode";
 
 --connect to the database
-	dofile(scripts_dir.."/resources/functions/database_handle.lua");
+	require "resources.functions.database_handle";
 	dbh = database_handle('system');
 
 --check if the session is ready
@@ -141,8 +141,13 @@
 			end);
 
 		--connect to the database
-			dofile(scripts_dir.."/resources/functions/database_handle.lua");
-			dbh = database_handle('switch');
+			if (file_exists(database_dir.."/core.db")) then
+				--dbh = freeswitch.Dbh("core:core"); -- when using sqlite
+				dbh = freeswitch.Dbh("sqlite://"..database_dir.."/core.db");
+			else
+				require "resources.functions.database_handle";
+				dbh = database_handle('switch');
+			end
 
 		--exits the script if we didn't connect properly
 			assert(dbh:connected());
