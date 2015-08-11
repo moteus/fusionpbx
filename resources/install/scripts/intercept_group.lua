@@ -106,7 +106,8 @@
 		--get the call groups the extension is a member of
 			sql = "SELECT call_group FROM v_extensions ";
 			sql = sql .. "WHERE domain_uuid = '"..domain_uuid.."' ";
-			sql = sql .. "AND extension = '"..caller_id_number.."'";
+			sql = sql .. "AND (extension = '"..caller_id_number.."'";
+			sql = sql .. "OR  number_alias = '"..caller_id_number.."')";
 			status = dbh:query(sql, function(row)
 				call_group = row.call_group;
 				freeswitch.consoleLog("NOTICE", "[intercept_group] call_group: "..call_group.."\n");
@@ -114,7 +115,7 @@
 			call_groups = explode(",", call_group);
 
 		--get the extensions in the call groups
-			sql = "SELECT extension FROM v_extensions ";
+			sql = "SELECT extension, number_alias FROM v_extensions ";
 			sql = sql .. "WHERE domain_uuid = '"..domain_uuid.."' ";
 			sql = sql .. "AND (";
 			for key,call_group in ipairs(call_groups) do
@@ -135,8 +136,12 @@
 			end
 			extensions = {}
 			status = dbh:query(sql, function(row)
-				extensions[x] = row.extension;
-				freeswitch.consoleLog("NOTICE", "[intercept_group] member "..row.extension.."\n");
+				local member = row.extension
+				if row.number_alias and #row.number_alias > 0 then
+					member = row.number_alias
+				end
+				extensions[x] = member
+				freeswitch.consoleLog("NOTICE", "[intercept_group] member "..extensions[x].."\n");
 				x = x + 1;
 			end);
 
