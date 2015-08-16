@@ -67,9 +67,7 @@ class destinations {
 					if (isset($row['where'])) {
 						$sql .= trim($row['where'])." ";
 					}
-					if (isset($row['sql'])) {
-						$sql .= "order by ".trim($row['order_by']);
-					}
+					$sql .= "order by ".trim($row['order_by']);
 					$sql = str_replace("\${domain_uuid}", $_SESSION['domain_uuid'], $sql);
 					$sql = trim($sql);
 					$statement = $db->prepare($sql);
@@ -192,7 +190,6 @@ class destinations {
 					$response .= "		<optgroup label='".$text2['title-'.$label]."'>\n";
 					$label2 = $label;
 					foreach ($row['result']['data'] as $data) {
-						$did = ($label2 == 'destinations') ? true : false;
 						$select_value = $row['select_value'][$destination_type];
 						$select_label = $row['select_label'];
 						foreach ($row['field'] as $key => $value) {
@@ -204,13 +201,31 @@ class destinations {
 								}
 							}
 							else {
-								$select_value = str_replace("\${".$key."}", $data[$key], $select_value);
-								if (strlen($data['label']) == 0) {
-									$select_label = str_replace("\${".$key."}", $data[$key], $select_label);
+								if (strpos($value,',') !== false) {
+									$keys = explode(",", $value);
+									foreach ($keys as $k) {
+										if (strlen($data[$k]) > 0) {
+											$select_value = str_replace("\${".$key."}", $data[$k], $select_value);
+											if (strlen($data['label']) == 0) {
+												$select_label = str_replace("\${".$key."}", $data[$k], $select_label);
+											}
+											else {
+												$label = $data['label'];
+												$select_label = str_replace("\${".$key."}", $text2['option-'.$label]."215", $select_label);
+											}
+										}
+									}
+
 								}
 								else {
-									$label = $data['label'];
-									$select_label = str_replace("\${".$key."}", $text2['option-'.$label], $select_label);
+									$select_value = str_replace("\${".$key."}", $data[$key], $select_value);
+									if (strlen($data['label']) == 0) {
+										$select_label = str_replace("\${".$key."}", $data[$key], $select_label);
+									}
+									else {
+										$label = $data['label'];
+										$select_label = str_replace("\${".$key."}", $text2['option-'.$label], $select_label);
+									}
 								}
 							}
 						}
@@ -218,9 +233,10 @@ class destinations {
 						$select_value = str_replace("\${context}", $_SESSION['context'], $select_value); //to do: context can come from the array
 						$select_label = str_replace("\${domain_name}", $_SESSION['domain_name'], $select_label);
 						$select_label = str_replace("\${context}", $_SESSION['context'], $select_label);
+						$select_label = trim($select_label);
 						if ($select_value == $destination_value) { $selected = "selected='selected' "; $select_found = true; } else { $selected = ''; }
-						if ($did) { $select_label = format_phone(trim($select_label)); }
-						$response .= "			<option value='".$select_value."' ".$selected.">".trim($select_label)."</option>\n";
+						if ($label2 == 'destinations') { $select_label = format_phone($select_label); }
+						$response .= "			<option value='".$select_value."' ".$selected.">".$select_label."</option>\n";
 					}
 					$response .= "		</optgroup>\n";
 					unset($text);
