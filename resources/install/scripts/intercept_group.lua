@@ -212,6 +212,7 @@
 
 				local api = freeswitch.API();
 
+				port = (port and port ~= "5060") and ":"..port or "";
 				local profile, proxy = sofia_profile_name, call_hostname..":"..port;
 				local peer = CLASTER_PEERS and CLASTER_PEERS[call_hostname];
 				if peer then

@@ -158,7 +158,8 @@ end
 				session:execute("export", "sip_h_X-callee_num="..callee_num);
 				port = freeswitch.getGlobalVariable(sofia_profile_name.."_sip_port");
 
-				local profile, proxy = sofia_profile_name, call_hostname..":"..port;
+				port = (port and port ~= "5060") and ":"..port or "";
+				local profile, proxy = sofia_profile_name, call_hostname .. port;
 				local peer = CLASTER_PEERS and CLASTER_PEERS[call_hostname];
 				if peer then
 					if type(peer) == "string" then
