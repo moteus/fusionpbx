@@ -289,7 +289,18 @@
 											else
 												--sofia/internal/${user_data(${destination_number}@${domain_name} attr id)}@${domain_name};fs_path=sip:server
 												user_id = trim(api:execute("user_data", user .. "@" .. domain_name .. " attr id"));
-												dial_string = "{sip_invite_domain=" .. domain_name .. ",presence_id=" .. user .. "@" .. domain_name .. "}sofia/internal/" .. user_id .. "@" .. domain_name .. ";fs_path=sip:" .. database_hostname;
+												local profile, proxy = "internal", database_hostname;
+												local peer = CLASTER_PEERS and CLASTER_PEERS[database_hostname];
+												if peer then
+													if type(peer) == "string" then
+														proxy = peer;
+													else
+														profile = peer[1] or profile;
+														proxy = peer[2] or proxy;
+													end
+												end
+												local auth_part = ",sip_auth_username=" .. user_id .. ",sip_auth_password='" .. password;
+												dial_string = "{sip_invite_domain=" .. domain_name .. ",presence_id=" .. user .. "@" .. domain_name .. auth_part .."'}sofia/" .. profile .. "/" .. user .. "@" .. domain_name .. ";fs_path=sip:" .. proxy;
 												--freeswitch.consoleLog("notice", "[xml_handler-directory.lua] dial_string " .. dial_string .. "\n");
 											end
 										else
