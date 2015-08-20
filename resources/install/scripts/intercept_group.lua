@@ -40,6 +40,9 @@
 	require "resources.functions.database_handle";
 	dbh = database_handle('system');
 
+--get the hostname
+	hostname = freeswitch.getGlobalVariable("hostname");
+
 --check if the session is ready
 	if ( session:ready() ) then
 		--answer the session
@@ -118,20 +121,16 @@
 			sql = "SELECT extension, number_alias FROM v_extensions ";
 			sql = sql .. "WHERE domain_uuid = '"..domain_uuid.."' ";
 			sql = sql .. "AND (";
-			x = 0;
-			for key,call_group in pairs(call_groups) do
-				if (x == 0) then
-					if (string.len(call_group) > 0) then
+			for key,call_group in ipairs(call_groups) do
+				if (key == 1) then
+					if (#call_group > 0) then
 						sql = sql .. "call_group like '%"..call_group.."%' ";
 					else
 						sql = sql .. "call_group = '' ";
 					end
-				else
-					if (string.len(call_group) > 0) then
-						sql = sql .. "OR call_group like '%"..call_group.."%' ";
-					end
+				elseif (#call_group > 0) then
+					sql = sql .. "OR call_group like '%"..call_group.."%' ";
 				end
-				x = x + 1;
 			end
 			x = 0;
 			sql = sql .. ") ";
@@ -192,11 +191,13 @@
 				uuid = row.uuid;
 				call_hostname = row.hostname;
 				ip_addr = row.ip_addr;
+				if (call_hostname == hostname) then
+					-- prefer local call
+					return 1;
+				end
 			end);
 	end
 
---get the hostname
-	hostname = freeswitch.getGlobalVariable("hostname");
 	freeswitch.consoleLog("NOTICE", "Hostname:"..hostname.."  Call Hostname:"..call_hostname.."\n");
 
 --intercept a call that is ringing

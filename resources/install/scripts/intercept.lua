@@ -52,6 +52,9 @@
 --exits the script if we didn't connect properly
 	assert(dbh:connected());
 
+--get the hostname
+	hostname = trim(api:execute("hostname", ""));
+
 if ( session:ready() ) then
 	--answer the session
 		session:answer();
@@ -132,18 +135,20 @@ if ( session:ready() ) then
 		if (debug["sql"]) then
 			freeswitch.consoleLog("NOTICE", "sql "..sql.."\n");
 		end
-			dbh:query(sql, function(result)
+		dbh:query(sql, function(result)
 			--for key, val in pairs(result) do
 			--	freeswitch.consoleLog("NOTICE", "result "..key.." "..val.."\n");
 			--end
 			uuid = result.uuid;
 			call_hostname = result.hostname;
 			callee_num = result.callee_num;
+			if (call_hostname == hostname) then
+				-- prefer local call
+				return 1;
+			end
 		end);
 end
 
---get the hostname
-	hostname = trim(api:execute("hostname", ""));
 	freeswitch.consoleLog("NOTICE", "Hostname:"..hostname.."  Call Hostname:"..call_hostname.."\n");
 
 --intercept a call that is ringing
