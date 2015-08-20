@@ -209,7 +209,24 @@
 				session:execute("export", "sip_h_X-domain_uuid="..domain_uuid);
 				session:execute("export", "sip_h_X-domain_name="..domain_name);
 				port = freeswitch.getGlobalVariable(sofia_profile_name.."_sip_port");
-				session:execute("bridge", "sofia/"..sofia_profile_name.."/*8@"..call_hostname..":"..port);
+
+				local api = freeswitch.API();
+
+				local profile, proxy = sofia_profile_name, call_hostname..":"..port;
+				local peer = CLASTER_PEERS and CLASTER_PEERS[call_hostname];
+				if peer then
+					if type(peer) == "string" then
+						proxy = peer;
+					else
+						profile = peer[1] or profile;
+						proxy = peer[2] or proxy;
+					end
+				end
+				local sip_auth_username = session:getVariable("sip_auth_username");
+				local sip_auth_password = api:execute("user_data", sip_auth_username .. "@" .. domain_name .." param password");
+				local dial_sting = "{sip_auth_username="..sip_auth_username..",sip_auth_password="..sip_auth_password.."}sofia/"..profile.."/*8@"..domain_name .. ";fs_path=sip:" .. proxy;
+
+				session:execute("bridge", dial_sting);
 				freeswitch.consoleLog("NOTICE", "Send call to other host.... \n");
 			end
 		end
