@@ -40,6 +40,9 @@
 	require "resources.functions.database_handle";
 	dbh = database_handle('system');
 
+--get the hostname
+	hostname = freeswitch.getGlobalVariable("hostname");
+
 --check if the session is ready
 	if ( session:ready() ) then
 		--answer the session
@@ -188,11 +191,13 @@
 				uuid = row.uuid;
 				call_hostname = row.hostname;
 				ip_addr = row.ip_addr;
+				if (call_hostname == hostname) then
+					-- prefer local call
+					return 1;
+				end
 			end);
 	end
 
---get the hostname
-	hostname = freeswitch.getGlobalVariable("hostname");
 	freeswitch.consoleLog("NOTICE", "Hostname:"..hostname.."  Call Hostname:"..call_hostname.."\n");
 
 --intercept a call that is ringing
