@@ -171,7 +171,7 @@ end
 				end
 				local sip_auth_username = session:getVariable("sip_auth_username");
 				local sip_auth_password = api:execute("user_data", sip_auth_username .. "@" .. domain_name .." param password");
-				local dial_sting = "{sip_auth_username="..sip_auth_username..",sip_auth_password="..sip_auth_password.."}sofia/"..profile.."/**" .. callee_num .. "@"..domain_name .. ";fs_path=sip:" .. proxy;
+				local dial_sting = "{sip_auth_username="..sip_auth_username..",sip_auth_password="..sip_auth_password.."}sofia/"..profile.."/**@"..domain_name .. ";fs_path=sip:" .. proxy;
 
 				session:execute("bridge", dial_sting);
 				freeswitch.consoleLog("NOTICE", "Send call to other host.... \n");
