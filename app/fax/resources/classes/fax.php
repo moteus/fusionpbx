@@ -40,7 +40,10 @@
 			public $dialplan_uuid;
 			public $fax_name;
 			public $fax_description;
+			public $fax_extension;
+			public $fax_forward_number;
 			public $destination_number;
+			private $forward_prefix;
 
 			/**
 			 * Called when the object is created
@@ -66,6 +69,20 @@
 			 */
 			public function dialplan() {
 
+				//normalize the fax forward number
+					if (strlen($this->fax_forward_number) > 3) {
+						//$fax_forward_number = preg_replace("~[^0-9]~", "",$fax_forward_number);
+						$this->fax_forward_number = str_replace(" ", "", $this->fax_forward_number);
+						$this->fax_forward_number = str_replace("-", "", $this->fax_forward_number);
+					}
+
+				//set the forward prefix
+					if (strripos($this->fax_forward_number, '$1') === false) {
+						$this->forward_prefix = ''; //not found
+					} else {
+						$this->forward_prefix = $this->forward_prefix.$this->fax_forward_number.'#'; //found
+					}
+
 				//delete previous dialplan
 					if (strlen($this->dialplan_uuid) > 0) {
 						//delete the previous dialplan
@@ -86,7 +103,7 @@
 					$dialplan["app_uuid"] = "24108154-4ac3-1db6-1551-4731703a4440";
 					$dialplan["domain_uuid"] = $this->domain_uuid;
 					$dialplan["dialplan_name"] = ($this->fax_name != '') ? $this->fax_name : format_phone($this->destination_number);
-					$dialplan["dialplan_number"] = $this->destination_number;
+					$dialplan["dialplan_number"] = $this->fax_extension;
 					$dialplan["dialplan_context"] = $_SESSION['context'];
 					$dialplan["dialplan_continue"] = "false";
 					$dialplan["dialplan_order"] = "310";
@@ -158,10 +175,10 @@
 					$dialplan["dialplan_details"][$y]["dialplan_detail_tag"] = "action";
 					$dialplan["dialplan_details"][$y]["dialplan_detail_type"] = "rxfax";
 					if (count($_SESSION["domains"]) > 1) {
-						$dialplan["dialplan_details"][$y]["dialplan_detail_data"] = $_SESSION['switch']['storage']['dir'].'/fax/'.$_SESSION['domain_name'].'/'.$this->destination_number.'/inbox/${last_fax}.tif';
+						$dialplan["dialplan_details"][$y]["dialplan_detail_data"] = $_SESSION['switch']['storage']['dir'].'/fax/'.$_SESSION['domain_name'].'/'.$this->fax_extension.'/inbox/'.$this->forward_prefix.'${last_fax}.tif';
 					}
 					else {
-						$dialplan["dialplan_details"][$y]["dialplan_detail_data"] = $_SESSION['switch']['storage']['dir'].'/fax/'.$this->destination_number.'/inbox/${last_fax}.tif';
+						$dialplan["dialplan_details"][$y]["dialplan_detail_data"] = $_SESSION['switch']['storage']['dir'].'/fax/'.$this->fax_extension.'/inbox/'.$this->forward_prefix.'${last_fax}.tif';
 					}
 					$dialplan["dialplan_details"][$y]["dialplan_detail_group"] = "1";
 					$dialplan["dialplan_details"][$y]["dialplan_detail_order"] = $y * 10;
@@ -221,8 +238,10 @@ $o = new fax;
 $c->domain_uuid = "";
 $c->dialplan_uuid = "";
 $c->fax_name = "";
-$c->fax_description = "";
-$c->destination_number = "";
+$c->fax_extension = $fax_extension;
+$c->fax_forward_number = $fax_forward_number;
+$c->destination_number = $fax_destination_number;
+$c->fax_description = $fax_description;
 $c->dialplan();
 */
 
