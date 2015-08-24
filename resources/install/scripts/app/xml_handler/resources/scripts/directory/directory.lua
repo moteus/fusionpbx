@@ -26,7 +26,7 @@
 --
 --	Contributor(s):
 --	Mark J Crane <markjcrane@fusionpbx.com>
---	Luis Daniel Lucio Quiroz <dlucio@okay.com.mx> 
+--	Luis Daniel Lucio Quiroz <dlucio@okay.com.mx>
 
 --set the default
 	continue = true;
