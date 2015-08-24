@@ -192,7 +192,7 @@
 								end
 
 							--get the caller hostname
-								local_hostname = trim(api:execute("hostname", ""));
+								local_hostname = trim(api:execute("switchname", ""));
 								--freeswitch.consoleLog("notice", "[xml_handler-directory.lua] local_hostname is " .. local_hostname .. "\n");
 
 							--add the file_exists function

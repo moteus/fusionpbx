@@ -53,7 +53,7 @@
 	assert(dbh:connected());
 
 --get the hostname
-	hostname = trim(api:execute("hostname", ""));
+	hostname = trim(api:execute("switchname", ""));
 
 if ( session:ready() ) then
 	--answer the session
