@@ -36,12 +36,15 @@
 --add the function
 	require "resources.functions.explode";
 
+--prepare the api object
+	api = freeswitch.API();
+
 --connect to the database
 	require "resources.functions.database_handle";
 	dbh = database_handle('system');
 
 --get the hostname
-	hostname = freeswitch.getGlobalVariable("hostname");
+	hostname = trim(api:execute("switchname", ""));
 
 --check if the session is ready
 	if ( session:ready() ) then
@@ -210,8 +213,6 @@
 				session:execute("export", "sip_h_X-domain_uuid="..domain_uuid);
 				session:execute("export", "sip_h_X-domain_name="..domain_name);
 				port = freeswitch.getGlobalVariable(sofia_profile_name.."_sip_port");
-
-				local api = freeswitch.API();
 
 				port = (port and port ~= "5060") and ":"..port or "";
 				local profile, proxy = sofia_profile_name, call_hostname..":"..port;
