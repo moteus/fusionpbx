@@ -35,6 +35,7 @@
 
 --add the function
 	require "resources.functions.explode";
+	require "resources.functions.trim";
 
 --prepare the api object
 	api = freeswitch.API();
