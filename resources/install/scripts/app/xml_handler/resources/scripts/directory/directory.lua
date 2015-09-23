@@ -318,7 +318,7 @@
 								if (string.len(row.dial_string) > 0) then
 									dial_string = row.dial_string;
 								else
-										local presence_id = user .. "@" .. domain_name;
+										local presence_id = (NUMBER_AS_PRESENCE_ID and sip_from_number or sip_from_user) .. "@" .. domain_name;
 										local destination = (DIAL_STRING_BASED_ON_USERID and sip_from_number or sip_from_user) .. "@" .. domain_name;
 									--set a default dial string
 										if (dial_string == null) then
@@ -330,6 +330,15 @@
 												freeswitch.consoleLog("notice", "[xml_handler-directory.lua] local_host and database_host are the same\n");
 											else
 												local profile, proxy = "internal", database_hostname;
+												local peer = CLASTER_PEERS and CLASTER_PEERS[database_hostname];
+												if peer then
+													if type(peer) == "string" then
+														proxy = peer;
+													else
+														profile = peer[1] or profile;
+														proxy = peer[2] or proxy;
+													end
+												end
 												dial_string = "{sip_invite_domain=" .. domain_name .. ",presence_id=" .. presence_id .."}sofia/" .. profile .. "/" .. destination .. ";fs_path=sip:" .. proxy;
 												--freeswitch.consoleLog("notice", "[xml_handler-directory.lua] dial_string " .. dial_string .. "\n");
 											end
