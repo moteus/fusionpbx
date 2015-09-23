@@ -36,6 +36,7 @@
 --add the function
 	require "resources.functions.explode";
 	require "resources.functions.trim";
+	require "resources.functions.channel_utils";
 
 --prepare the api object
 	api = freeswitch.API();
@@ -166,7 +167,7 @@
 
 		--check the database to get the uuid of a ringing call
 			call_hostname = "";
-			sql = "SELECT call_uuid AS uuid, hostname, ip_addr FROM channels ";
+			sql = "SELECT uuid, call_uuid, hostname, ip_addr FROM channels ";
 			sql = sql .. "WHERE callstate in ('RINGING', 'EARLY') ";
 			--sql = sql .. "AND direction = 'outbound' ";
 			sql = sql .. "AND (";
@@ -192,7 +193,11 @@
 				--for key, val in pairs(row) do
 				--	freeswitch.consoleLog("NOTICE", "row "..key.." "..val.."\n");
 				--end
-				uuid = row.uuid;
+				if row.uuid == row.call_uuid then
+					uuid = channel_variable(row.uuid, 'ent_originate_aleg_uuid') or row.uuid
+				else
+					uuid = row.call_uuid;
+				end
 				call_hostname = row.hostname;
 				ip_addr = row.ip_addr;
 				if (call_hostname == hostname) then
