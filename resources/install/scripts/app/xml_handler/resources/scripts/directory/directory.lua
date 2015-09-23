@@ -26,7 +26,7 @@
 --
 --	Contributor(s):
 --	Mark J Crane <markjcrane@fusionpbx.com>
---	Luis Daniel Lucio Quiroz <dlucio@okay.com.mx> 
+--	Luis Daniel Lucio Quiroz <dlucio@okay.com.mx>
 
 --set the default
 	continue = true;
@@ -62,32 +62,75 @@
 			--all other directory actions: sip_auth, user_call 
 			--except for the action: group_call
 
+		-- Make sance only for extensions with number_alias
+		--  true  - you should register with AuthID=Extension and UserID=Number Alias
+		--  false - you should register with AuthID=UserID=Extension
+		-- 	also in this case you need 2 records in memcache for one extension
+			local DIAL_STRING_BASED_ON_USERID = false
+
+			local sip_auth_method = params:getHeader("sip_auth_method")
+			if sip_auth_method then
+				sip_auth_method = sip_auth_method:upper();
+			end
+
+			local from_user = params:getHeader("sip_from_user")
+			if load_balancing and sip_auth_method == 'INVITE' then
+				from_user = user
+			end
+
+			-- verify from_user and number alias for this methods
+			local METHODS = {
+				-- _ANY_    = true,
+				REGISTER = true,
+				-- INVITE   = true,
+			}
+
 			if (user == nil) then
 				user = "";
 			end
 
-		--get the cache
-			if (trim(api:execute("module_exists", "mod_memcache")) == "true") then
-				if (domain_name) then
-					XML_STRING = trim(api:execute("memcache", "get directory:" .. user .. "@" .. domain_name));
-				end
-				if (XML_STRING == "-ERR NOT FOUND") or (XML_STRING == "-ERR CONNECTION FAILURE") then
-					source = "database";
-					continue = true;
-				else
-					source = "cache";
-					continue = true;
-				end
-			else
-				XML_STRING = "";
-				source = "database";
-				continue = true;
+			if (from_user == "") or (from_user == nil) then
+				from_user = user
 			end
 
 		--prevent processing for invalid user
 			if (user == "*97") or (user == "") then
 				source = "";
 				continue = false;
+			end
+
+		-- cleanup
+			XML_STRING = nil;
+
+		--get the cache
+			if (continue) then
+				if (trim(api:execute("module_exists", "mod_memcache")) == "true") then
+					if (domain_name) then
+						local key = "directory:" .. (from_user or user) .. "@" .. domain_name
+						XML_STRING = trim(api:execute("memcache", "get " .. key));
+
+						if debug['cache'] then
+							if XML_STRING:sub(1, 4) == '-ERR' then
+								freeswitch.consoleLog("notice", "[xml_handler-directory][memcache] get key: " .. key .. " fail: " .. XML_STRING .. "\n")
+							else
+								freeswitch.consoleLog("notice", "[xml_handler-directory][memcache] get key: " .. key .. " pass!" .. "\n")
+							end
+						end
+					else
+						XML_STRING = "-ERR NOT FOUND"
+					end
+					if (XML_STRING == "-ERR NOT FOUND") or (XML_STRING == "-ERR CONNECTION FAILURE") then
+						source = "database";
+						continue = true;
+					else
+						source = "cache";
+						continue = true;
+					end
+				else
+					XML_STRING = "";
+					source = "database";
+					continue = true;
+				end
 			end
 
 		--show the params in the console
@@ -104,8 +147,10 @@
 				--freeswitch.consoleLog("notice", "[xml_handler-directory.lua] dialed_extension is " .. dialed_extension .. "\n");
 			end
 
+			local loaded_from_db = false
 		--build the XML string from the database
 			if (source == "database") or (load_balancing) then
+				loaded_from_db = true
 				--database connection
 					if (continue) then
 						--connect to the database
@@ -165,9 +210,15 @@
 									dbh_switch = database_handle('switch');
 								end
 
+							--get register name
+								local reg_user = dialed_extension
+								if not DIAL_STRING_BASED_ON_USERID then
+									reg_user = trim(api:execute("user_data", dialed_extension .. "@" .. domain_name .. " attr id"));
+								end
+
 							--get the destination hostname from the registration
 								sql = "SELECT hostname FROM registrations ";
-								sql = sql .. "WHERE reg_user = '"..dialed_extension.."' ";
+								sql = sql .. "WHERE reg_user = '"..reg_user.."' ";
 								sql = sql .. "AND realm = '"..domain_name.."' ";
 								if (database["type"] == "mysql") then
 									now = os.time();
@@ -252,22 +303,32 @@
 								forward_no_answer_destination = row.forward_no_answer_destination;
 								do_not_disturb = row.do_not_disturb;
 
+							-- check matching UserID and AuthName
+								if sip_auth_method and (METHODS[sip_auth_method] or METHODS._ANY_) then
+									continue = (sip_from_user == user) and ((sip_from_number == from_user) or (from_user == user))
+									if not continue then
+										XML_STRING = nil;
+										return 1;
+									end
+								end
+
 							--set the dial_string
 								if (string.len(row.dial_string) > 0) then
 									dial_string = row.dial_string;
 								else
+										local presence_id = user .. "@" .. domain_name;
+										local destination = (DIAL_STRING_BASED_ON_USERID and sip_from_number or sip_from_user) .. "@" .. domain_name;
 									--set a default dial string
 										if (dial_string == null) then
-											dial_string = "{sip_invite_domain=" .. domain_name .. ",presence_id=" .. user .. "@" .. domain_name .. "}${sofia_contact(" .. extension .. "@" .. domain_name .. ")}";
+											dial_string = "{sip_invite_domain=" .. domain_name .. ",presence_id=" .. presence_id .. "}${sofia_contact(" .. destination .. ")}";
 										end
 									--set the an alternative dial string if the hostnames don't match
 										if (load_balancing) then
 											if (local_hostname == database_hostname) then
 												freeswitch.consoleLog("notice", "[xml_handler-directory.lua] local_host and database_host are the same\n");
 											else
-												--sofia/internal/${user_data(${destination_number}@${domain_name} attr id)}@${domain_name};fs_path=sip:server
-												user_id = trim(api:execute("user_data", user .. "@" .. domain_name .. " attr id"));
-												dial_string = "{sip_invite_domain=" .. domain_name .. ",presence_id=" .. user .. "@" .. domain_name .. "}sofia/internal/" .. user_id .. "@" .. domain_name .. ";fs_path=sip:" .. database_hostname;
+												local profile, proxy = "internal", database_hostname;
+												dial_string = "{sip_invite_domain=" .. domain_name .. ",presence_id=" .. presence_id .."}sofia/" .. profile .. "/" .. destination .. ";fs_path=sip:" .. proxy;
 												--freeswitch.consoleLog("notice", "[xml_handler-directory.lua] dial_string " .. dial_string .. "\n");
 											end
 										else
@@ -285,8 +346,8 @@
 				--get the voicemail from the database
 					if (continue) then
 						vm_enabled = "true";
-						if tonumber(user) == nil then
-   							sql = "SELECT * FROM v_voicemails WHERE domain_uuid = '" .. domain_uuid .. "' and voicemail_id = '" .. number_alias .. "' ";
+						if number_alias and #number_alias > 0 then
+							sql = "SELECT * FROM v_voicemails WHERE domain_uuid = '" .. domain_uuid .. "' and voicemail_id = '" .. number_alias .. "' ";
 						else
 							sql = "SELECT * FROM v_voicemails WHERE domain_uuid = '" .. domain_uuid .. "' and voicemail_id = '" .. user .. "' ";
 						end
@@ -327,10 +388,10 @@
 							table.insert(xml, [[<document type="freeswitch/xml">]]);
 							table.insert(xml, [[	<section name="directory">]]);
 							table.insert(xml, [[		<domain name="]] .. domain_name .. [[" alias="true">]]);
-							table.insert(xml, [[            <params>]]);
-							table.insert(xml, [[                    <param name="jsonrpc-allowed-methods" value="verto"/>]]);
-							table.insert(xml, [[                    <param name="jsonrpc-allowed-event-channels" value="demo,conference,presence"/>]]);
-							table.insert(xml, [[            </params>]]);
+							table.insert(xml, [[			<params>]]);
+							table.insert(xml, [[				<param name="jsonrpc-allowed-methods" value="verto"/>]]);
+							table.insert(xml, [[				<param name="jsonrpc-allowed-event-channels" value="demo,conference,presence"/>]]);
+							table.insert(xml, [[			</params>]]);
 							table.insert(xml, [[			<groups>]]);
 							table.insert(xml, [[				<group name="default">]]);
 							table.insert(xml, [[					<users>]]);
@@ -492,9 +553,11 @@
 							dbh:release();
 
 						--set the cache
-							if (user and domain_name) then
-								result = trim(api:execute("memcache", "set directory:" .. user .. "@" .. domain_name .. " '"..XML_STRING:gsub("'", "&#39;").."' "..expire["directory"]));
+							local key = "directory:" .. (DIAL_STRING_BASED_ON_USERID and sip_from_number or sip_from_user) .. "@" .. domain_name
+							if debug['cache'] then
+								freeswitch.consoleLog("notice", "[xml_handler-directory][memcache] set key: " .. key .. "\n")
 							end
+							result = trim(api:execute("memcache", "set " .. key .. " '"..XML_STRING:gsub("'", "&#39;").."' "..expire["directory"]));
 
 						--send the xml to the console
 							if (debug["xml_string"]) then
@@ -510,11 +573,14 @@
 					end
 			end
 
-		--disable registration for number-alias
-			if (params:getHeader("sip_auth_method") == "REGISTER") then
-				if (api:execute("user_data", user .. "@" .. domain_name .." attr id") ~= user) then
-					XML_STRING = nil;
-				end
+			if XML_STRING and (not loaded_from_db)
+				and sip_auth_method and (METHODS[sip_auth_method] or METHODS._ANY_)
+			then
+					local user_id = api:execute("user_data", from_user .. "@" .. domain_name .." attr id")
+				--disable registration for number-alias and foreign number_alias
+					if user_id ~= user then
+						XML_STRING = nil;
+					end
 			end
 
 		--get the XML string from the cache
