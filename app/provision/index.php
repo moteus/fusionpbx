@@ -93,6 +93,7 @@ The file name is fixed to `Account1_Extern.xml`.
 				$domain_uuid = $row["domain_uuid"];
 			}
 			unset($result, $prep_statement);
+			$_SESSION['domain_uuid'] = $domain_uuid;
 
 		//get the domain name
 			$domain_name = $_SESSION['domains'][$domain_uuid]['domain_name'];

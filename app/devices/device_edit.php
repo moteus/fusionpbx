@@ -217,7 +217,7 @@ require_once "resources/require.php";
 
 				//array cleanup
 					$x = 0;
-					unset($_POST["autocomplete"]);
+					//unset($_POST["autocomplete"]);
 					foreach ($_POST["device_lines"] as $row) {
 						//unset the empty row
 							if (strlen($row["line_number"]) == 0) {
@@ -503,7 +503,7 @@ require_once "resources/require.php";
 <?php
 //show the content
 	echo "<form method='post' name='frm' id='frm' action='' onsubmit='check_duplicates(); return false;'>\n";
-	echo "<input style='display:none;' type='password' name='autocomplete'>";
+	//echo "<input style='display:none;' type='password' name='autocomplete'>";
 	echo "<table width='100%' border='0' cellpadding='0' cellspacing='0'>\n";
 	echo "<tr>\n";
 	echo "<td align='left' width='30%' nowrap='nowrap' valign='top'>";
