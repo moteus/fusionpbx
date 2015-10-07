@@ -17,7 +17,7 @@
 
 	The Initial Developer of the Original Code is
 	Mark J Crane <markjcrane@fusionpbx.com>
-	Portions created by the Initial Developer are Copyright (C) 2008-2012
+	Portions created by the Initial Developer are Copyright (C) 2008-2015
 	the Initial Developer. All Rights Reserved.
 
 	Contributor(s):
@@ -40,6 +40,7 @@ if (defined('STDIN')) {
 //includes
 	if (!defined('STDIN')) { include "root.php"; }
 	require_once "resources/require.php";
+	include "resources/classes/EventSocket.php";
 	include "resources/phpmailer/class.phpmailer.php";
 	include "resources/phpmailer/class.smtp.php"; // optional, gets called from within class.phpmailer.php if not already loaded
 
@@ -124,14 +125,21 @@ if (defined('STDIN')) {
 	echo "fax_extension $fax_extension\n";
 	echo "fax_name $fax_file_only\n";
 
-//get the fax details from the database
+//get the domain_uuid from the database
 	$sql = "select * from v_domains ";
 	$sql .= "where domain_name = '".$domain_name."' ";
 	$prep_statement = $db->prepare($sql);
 	$prep_statement->execute();
 	$result = $prep_statement->fetchAll(PDO::FETCH_ASSOC);
 	foreach ($result as &$row) {
-		$_SESSION["domain_uuid"] = $row["domain_uuid"];
+		//set the domain variables
+			$domain_uuid = $row["domain_uuid"];
+			$_SESSION["domain_uuid"] = $row["domain_uuid"];
+			$_SESSION["domain_name"] = $domain_name;
+		//set the setting arrays
+			$domain = new domains();
+			$domain->db = $db;
+			$domain->set();
 	}
 	unset ($prep_statement);
 
@@ -145,11 +153,11 @@ if (defined('STDIN')) {
 	foreach ($result as &$row) {
 		//set database fields as variables
 			//$fax_email = $row["fax_email"];
+			$fax_accountcode = $row["fax_accountcode"];
 			$fax_pin_number = $row["fax_pin_number"];
 			$fax_caller_id_name = $row["fax_caller_id_name"];
 			$fax_caller_id_number = $row["fax_caller_id_number"];
 			$fax_forward_number = $row["fax_forward_number"];
-			//$fax_user_list = $row["fax_user_list"];
 			$fax_description = $row["fax_description"];
 			$fax_email_inbound_subject_tag = $row['fax_email_inbound_subject_tag'];
 	}
@@ -260,7 +268,7 @@ if (defined('STDIN')) {
 								$fax_uri = $route_array[0];
 								$t38 = "fax_enable_t38=true,fax_enable_t38_request=true";
 						}
-						$cmd = "api originate {mailto_address='".$mailto_address."',mailfrom_address='".$mailfrom_address."',origination_caller_id_name='".$fax_caller_id_name."',origination_caller_id_number=".$fax_caller_id_number.",fax_uri=".$fax_uri.",fax_file='".$fax_file."',fax_retry_attempts=1,fax_retry_limit=20,fax_retry_sleep=180,fax_verbose=true,fax_use_ecm=off,".$t38.",api_hangup_hook='lua fax_retry.lua'}".$fax_uri." &txfax('".$fax_file."')";
+						$cmd = "api originate {absolute_codec_string='PCMU,PCMA',accountcode='".$fax_accountcode."',sip_h_X-accountcode='".$fax_accountcode."',domain_uuid=".$_SESSION["domain_uuid"].",domain_name=".$_SESSION["domain_name"].",mailto_address='".$mailto_address."',mailfrom_address='".$mailfrom_address."',origination_caller_id_name='".$fax_caller_id_name."',origination_caller_id_number=".$fax_caller_id_number.",fax_uri=".$fax_uri.",fax_file='".$fax_file."',fax_retry_attempts=1,fax_retry_limit=20,fax_retry_sleep=180,fax_verbose=true,fax_use_ecm=off,".$t38.",api_hangup_hook='lua fax_retry.lua'}".$fax_uri." &txfax('".$fax_file."')";
 					//send info to the log
 						echo "fax forward\n";
 						echo $cmd."\n";

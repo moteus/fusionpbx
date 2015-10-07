@@ -13,7 +13,7 @@
 --	   notice, this list of conditions and the following disclaimer in the
 --	   documentation and/or other materials provided with the distribution.
 --
---	THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES,
+--	THIS SOFTWARE IS PROVIDED ''AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES,
 --	INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
 --	AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
 --	AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY,
@@ -85,7 +85,7 @@
 			end
 
 		--prevent processing for invalid user
-			if (user == "*97") then
+			if (user == "*97") or (user == "") then
 				source = "";
 				continue = false;
 			end
@@ -109,7 +109,7 @@
 				--database connection
 					if (continue) then
 						--connect to the database
-							dofile(scripts_dir.."/resources/functions/database_handle.lua");
+							require "resources.functions.database_handle";
 							dbh = database_handle('system');
 
 						--exits the script if we didn't connect properly
@@ -150,18 +150,18 @@
 								end
 
 							--get the caller hostname
-								local_hostname = trim(api:execute("hostname", ""));
+								local_hostname = trim(api:execute("switchname", ""));
 								--freeswitch.consoleLog("notice", "[xml_handler-directory.lua] local_hostname is " .. local_hostname .. "\n");
 
 							--add the file_exists function
-								dofile(scripts_dir.."/resources/functions/file_exists.lua");
+								require "resources.functions.file_exists";
 
 							--connect to the switch database
 								if (file_exists(database_dir.."/core.db")) then
 									--dbh_switch = freeswitch.Dbh("core:core"); -- when using sqlite
 									dbh_switch = freeswitch.Dbh("sqlite://"..database_dir.."/core.db");
 								else
-									dofile(scripts_dir.."/resources/functions/database_handle.lua");
+									require "resources.functions.database_handle";
 									dbh_switch = database_handle('switch');
 								end
 
@@ -170,7 +170,8 @@
 								sql = sql .. "WHERE reg_user = '"..dialed_extension.."' ";
 								sql = sql .. "AND realm = '"..domain_name.."' ";
 								if (database["type"] == "mysql") then
-									sql = sql .. "AND expires > unix_timestamp(NOW())";
+									now = os.time();
+									sql = sql .. "AND expires > "..now;
 								else
 									sql = sql .. "AND to_timestamp(expires) > NOW()";
 								end
@@ -196,8 +197,10 @@
 						if (debug["sql"]) then
 							freeswitch.consoleLog("notice", "[xml_handler] SQL: " .. sql .. "\n");
 						end
+						continue = false;
 						dbh:query(sql, function(row)
 							--general
+								continue = true;
 								domain_uuid = row.domain_uuid;
 								extension_uuid = row.extension_uuid;
 								extension = row.extension;
@@ -215,6 +218,7 @@
 								auth_acl = row.auth_acl;
 							--variables
 								sip_from_user = row.extension;
+								sip_from_number = (#number_alias > 0) and number_alias or row.extension;
 								call_group = row.call_group;
 								call_screen_enabled = row.call_screen_enabled;
 								user_record = row.user_record;
@@ -371,7 +375,7 @@
 							table.insert(xml, [[								<variable name="extension_uuid" value="]] .. extension_uuid .. [["/>]]);
 							table.insert(xml, [[								<variable name="call_timeout" value="]] .. call_timeout .. [["/>]]);
 							table.insert(xml, [[								<variable name="caller_id_name" value="]] .. sip_from_user .. [["/>]]);
-							table.insert(xml, [[								<variable name="caller_id_number" value="]] .. sip_from_user .. [["/>]]);
+							table.insert(xml, [[								<variable name="caller_id_number" value="]] .. sip_from_number .. [["/>]]);
 							if (string.len(call_group) > 0) then
 								table.insert(xml, [[								<variable name="call_group" value="]] .. call_group .. [["/>]]);
 							end
@@ -433,7 +437,7 @@
 								table.insert(xml, [[								<variable name="limit_destination" value="]] .. limit_destination .. [["/>]]);
 							end
 							if (string.len(sip_force_contact) > 0) then
-								table.insert(xml, [[								<variable name="sip_force_contact" value="]] .. sip_force_contact .. [["/>]]);
+								table.insert(xml, [[								<variable name="sip-force-contact" value="]] .. sip_force_contact .. [["/>]]);
 							end
 							if (string.len(sip_force_expires) > 0) then
 								table.insert(xml, [[								<variable name="sip-force-expires" value="]] .. sip_force_expires .. [["/>]]);
@@ -494,7 +498,7 @@
 
 						--send the xml to the console
 							if (debug["xml_string"]) then
-								local file = assert(io.open("/tmp/" .. user .. "@" .. domain_name .. ".xml", "w"));
+								local file = assert(io.open(temp_dir .. "/" .. user .. "@" .. domain_name .. ".xml", "w"));
 								file:write(XML_STRING);
 								file:close();
 							end

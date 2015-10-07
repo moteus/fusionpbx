@@ -37,19 +37,19 @@
 	debug["sql"] = false;
 
 --connect to the database
-	dofile(scripts_dir.."/resources/functions/database_handle.lua");
+	require "resources.functions.database_handle";
 	dbh = database_handle('system');
 
 --prepare the api object
 	api = freeswitch.API();
 
 --general functions
-	dofile(scripts_dir.."/resources/functions/base64.lua");
-	dofile(scripts_dir.."/resources/functions/trim.lua");
-	dofile(scripts_dir.."/resources/functions/file_exists.lua");
-	dofile(scripts_dir.."/resources/functions/explode.lua");
-	dofile(scripts_dir.."/resources/functions/format_seconds.lua");
-	dofile(scripts_dir.."/resources/functions/mkdir.lua");
+	require "resources.functions.base64";
+	require "resources.functions.trim";
+	require "resources.functions.file_exists";
+	require "resources.functions.explode";
+	require "resources.functions.format_seconds";
+	require "resources.functions.mkdir";
 
 --get the session variables
 	uuid = session:getVariable("uuid");
@@ -153,7 +153,7 @@
 			end_epoch = os.time();
 
 		--connect to the database
-			dofile(scripts_dir.."/resources/functions/database_handle.lua");
+			require "resources.functions.database_handle";
 			dbh = database_handle('system');
 
 		--get the conference sessions
@@ -589,7 +589,7 @@
 							max_len_seconds = 5;
 							silence_threshold = "500";
 							silence_secs = "3";
-							session:recordFile("/tmp/conference-"..uuid..".wav", max_len_seconds, silence_threshold, silence_secs);
+							session:recordFile(temp_dir:gsub("\\","/") .. "/conference-"..uuid..".wav", max_len_seconds, silence_threshold, silence_secs);
 					end
 
 				--play a message that the conference is being a recorded
@@ -678,7 +678,7 @@
 				--announce the caller
 					if (announce == "true") then
 						--announce the caller - play the recording
-							cmd = "conference "..meeting_uuid.."-"..domain_name.." play /tmp/conference-"..uuid..".wav";
+							cmd = "conference "..meeting_uuid.."-"..domain_name.." play " .. temp_dir:gsub("\\", "/") .. "/conference-"..uuid..".wav";
 							--freeswitch.consoleLog("notice", "[conference center] ".. cmd .."\n");
 							response = api:executeString(cmd);
 						--play has entered the conference

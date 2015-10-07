@@ -31,16 +31,22 @@
 	debug["sql"] = false;
 
 --include config.lua
-	scripts_dir = string.sub(debug.getinfo(1).source,2,string.len(debug.getinfo(1).source)-(string.len(argv[0])+1));
-	dofile(scripts_dir.."/resources/functions/config.lua");
-	dofile(config());
+	require "resources.functions.config";
 
 --add the function
-	dofile(scripts_dir.."/resources/functions/explode.lua");
+	require "resources.functions.explode";
+	require "resources.functions.trim";
+	require "resources.functions.channel_utils";
+
+--prepare the api object
+	api = freeswitch.API();
 
 --connect to the database
-	dofile(scripts_dir.."/resources/functions/database_handle.lua");
+	require "resources.functions.database_handle";
 	dbh = database_handle('system');
+
+--get the hostname
+	hostname = trim(api:execute("switchname", ""));
 
 --check if the session is ready
 	if ( session:ready() ) then
@@ -108,15 +114,16 @@
 		--get the call groups the extension is a member of
 			sql = "SELECT call_group FROM v_extensions ";
 			sql = sql .. "WHERE domain_uuid = '"..domain_uuid.."' ";
-			sql = sql .. "AND extension = '"..caller_id_number.."'";
+			sql = sql .. "AND (extension = '"..caller_id_number.."'";
+			sql = sql .. "OR  number_alias = '"..caller_id_number.."')";
 			status = dbh:query(sql, function(row)
 				call_group = row.call_group;
-				freeswitch.consoleLog("NOTICE", "result "..call_group.."\n");
+				freeswitch.consoleLog("NOTICE", "[intercept_group] call_group: "..call_group.."\n");
 			end);
 			call_groups = explode(",", call_group);
 
 		--get the extensions in the call groups
-			sql = "SELECT extension FROM v_extensions ";
+			sql = "SELECT extension, number_alias FROM v_extensions ";
 			sql = sql .. "WHERE domain_uuid = '"..domain_uuid.."' ";
 			sql = sql .. "AND (";
 			x = 0;
@@ -136,11 +143,17 @@
 			end
 			x = 0;
 			sql = sql .. ") ";
-			freeswitch.consoleLog("NOTICE", "result "..sql.."\n");
+			if (debug["sql"]) then
+				freeswitch.consoleLog("NOTICE", "[intercept_group] sql "..sql.."\n");
+			end
 			extensions = {}
 			status = dbh:query(sql, function(row)
-				extensions[x] = row.extension;
-				freeswitch.consoleLog("NOTICE", "result "..row.extension.."\n");
+				local member = row.extension
+				if row.number_alias and #row.number_alias > 0 then
+					member = row.number_alias
+				end
+				extensions[x] = member
+				freeswitch.consoleLog("NOTICE", "[intercept_group] member "..extensions[x].."\n");
 				x = x + 1;
 			end);
 
@@ -149,7 +162,7 @@
 				--dbh = freeswitch.Dbh("core:core"); -- when using sqlite
 				dbh = freeswitch.Dbh("sqlite://"..database_dir.."/core.db");
 			else
-				dofile(scripts_dir.."/resources/functions/database_handle.lua");
+				require "resources.functions.database_handle";
 				dbh = database_handle('switch');
 			end
 
@@ -158,8 +171,9 @@
 
 		--check the database to get the uuid of a ringing call
 			call_hostname = "";
-			sql = "SELECT call_uuid AS uuid, hostname, ip_addr FROM channels ";
-			sql = sql .. "WHERE callstate = 'RINGING' ";
+			sql = "SELECT uuid, call_uuid, hostname, ip_addr FROM channels ";
+			sql = sql .. "WHERE callstate in ('RINGING', 'EARLY') ";
+			--sql = sql .. "AND direction = 'outbound' ";
 			sql = sql .. "AND (";
 			x = 0;
 			for key,extension in pairs(extensions) do
@@ -177,20 +191,25 @@
 			--end
 			sql = sql .. "limit 1 ";
 			if (debug["sql"]) then
-				freeswitch.consoleLog("NOTICE", "sql "..sql.."\n");
+				freeswitch.consoleLog("NOTICE", "[intercept_group] sql "..sql.."\n");
 			end
 			dbh:query(sql, function(row)
 				--for key, val in pairs(row) do
 				--	freeswitch.consoleLog("NOTICE", "row "..key.." "..val.."\n");
 				--end
-				uuid = row.uuid;
+				if row.uuid == row.call_uuid then
+					uuid = channel_variable(row.uuid, 'ent_originate_aleg_uuid') or
+							channel_variable(row.uuid, 'cc_member_session_uuid') or
+							channel_variable(row.uuid, 'fifo_bridge_uuid') or
+							row.uuid
+				else
+					uuid = row.call_uuid;
+				end
 				call_hostname = row.hostname;
 				ip_addr = row.ip_addr;
 			end);
 	end
 
---get the hostname
-	hostname = freeswitch.getGlobalVariable("hostname");
 	freeswitch.consoleLog("NOTICE", "Hostname:"..hostname.."  Call Hostname:"..call_hostname.."\n");
 
 --intercept a call that is ringing

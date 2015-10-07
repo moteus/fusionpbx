@@ -52,7 +52,7 @@
 		--require the email address to send the email
 			if (string.len(voicemail_mail_to) > 2) then
 				--include languages file
-					dofile(scripts_dir.."/app/voicemail/app_languages.lua");
+					require "app.voicemail.app_languages";
 
 				--get voicemail message details
 					sql = [[SELECT * FROM v_voicemail_messages
@@ -73,7 +73,7 @@
 						--get the recordings from the database
 							if (storage_type == "base64") then
 								--add functions
-									dofile(scripts_dir.."/resources/functions/base64.lua");
+									require "resources.functions.base64";
 
 								--set the voicemail message path
 									message_location = voicemail_dir.."/"..id.."/msg_"..uuid.."."..vm_message_ext;
@@ -131,6 +131,8 @@
 					body = body:gsub("${message_duration}", message_length_formatted);
 					body = body:gsub("${account}", id);
 					body = body:gsub("${domain_name}", domain_name);
+					body = body:gsub("${sip_to_user}", id);
+					body = body:gsub("${dialed_user}", id);
 					if (voicemail_file == "attach") then
 						body = body:gsub("${message}", text['label-attached'][default_language.."-"..default_dialect]);
 					elseif (voicemail_file == "link") then

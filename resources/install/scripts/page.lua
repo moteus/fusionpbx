@@ -28,19 +28,11 @@ pin_number = "";
 max_tries = "3";
 digit_timeout = "3000";
 
-function trim (s)
-	return (string.gsub(s, "^%s*(.-)%s*$", "%1"))
-end
+--define the trim function
+	require "resources.functions.trim";
 
-function explode ( seperator, str ) 
-	local pos, arr = 0, {}
-	for st, sp in function() return string.find( str, seperator, pos, true ) end do -- for each divider found
-		table.insert( arr, string.sub( str, pos, st-1 ) ) -- attach chars left of current divider
-		pos = sp + 1 -- jump past current divider
-	end
-	table.insert( arr, string.sub( str, pos ) ) -- attach chars right of last divider
-	return arr
-end
+--define the explode function
+	require "resources.functions.explode";
 
 if ( session:ready() ) then
 	session:answer();
@@ -67,7 +59,7 @@ if ( session:ready() ) then
 		if (not default_dialect) then default_dialect = 'us'; end
 		if (not default_voice) then default_voice = 'callie'; end
 
-	local conf_name = "page-"..destination_number.."%"..domain_name.."@page"
+	local conf_name = "page-"..destination_number.."-"..domain_name.."@page"
 
 	if (caller_id_name) then
 		--caller id name provided do nothing

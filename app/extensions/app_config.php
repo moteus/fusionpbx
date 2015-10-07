@@ -20,6 +20,38 @@
 		$apps[$x]['description']['pt-pt'] = "Utilizado para configurar extensões SIP.";
 		$apps[$x]['description']['pt-br'] = "";
 
+	//destination details
+		$y = 0;
+		$apps[$x]['destinations'][$y]['type'] = "sql";
+		$apps[$x]['destinations'][$y]['label'] = "extensions";
+		$apps[$x]['destinations'][$y]['name'] = "extensions";
+		$apps[$x]['destinations'][$y]['sql'] = "select extension, number_alias, user_context as context, description from v_extensions ";
+		$apps[$x]['destinations'][$y]['where'] = "where domain_uuid = '\${domain_uuid}' and enabled = 'true' ";
+		$apps[$x]['destinations'][$y]['order_by'] = "number_alias, extension asc";
+		$apps[$x]['destinations'][$y]['field']['context'] = "user_context";
+		$apps[$x]['destinations'][$y]['field']['destination'] = "number_alias,extension";
+		$apps[$x]['destinations'][$y]['field']['description'] = "description";
+		$apps[$x]['destinations'][$y]['select_value']['user_contact'] = "user/\${destination}@\${domain_name}";
+		$apps[$x]['destinations'][$y]['select_value']['dialplan'] = "transfer:\${destination} XML \${context}";
+		$apps[$x]['destinations'][$y]['select_value']['ivr'] = "menu-exec-app:transfer \${destination} XML \${context}";
+		$apps[$x]['destinations'][$y]['select_label'] = "\${destination} \${description}";
+		$y++;
+		$apps[$x]['destinations'][$y]['type'] = "sql";
+		$apps[$x]['destinations'][$y]['label'] = "call_groups";
+		$apps[$x]['destinations'][$y]['name'] = "extensions";
+		$apps[$x]['destinations'][$y]['sql']['pgsql'] = "select distinct(unnest(string_to_array(call_group, ','))) as destination from v_extensions ";
+		$apps[$x]['destinations'][$y]['sql']['sqlite'] = "select distinct(call_group) as destination from v_extensions";
+		$apps[$x]['destinations'][$y]['sql']['mysql'] = "select distinct(call_group) as destination from v_extensions";
+		$apps[$x]['destinations'][$y]['where'] = "where domain_uuid = '\${domain_uuid}' and call_group <> '' and enabled = 'true' ";
+		$apps[$x]['destinations'][$y]['order_by'] = "destination asc";
+		$apps[$x]['destinations'][$y]['field']['context'] = "user_context";
+		$apps[$x]['destinations'][$y]['field']['destination']['name'] = "destination";
+		$apps[$x]['destinations'][$y]['field']['destination']['type'] = "csv";
+		$apps[$x]['destinations'][$y]['field']['destination']['delimiter'] = ",";
+		$apps[$x]['destinations'][$y]['select_value']['dialplan'] = "bridge:group/\${destination}@\${domain_name}";
+		$apps[$x]['destinations'][$y]['select_value']['ivr'] = "menu-exec-app:bridge group/\${destination}@\${domain_name}";
+		$apps[$x]['destinations'][$y]['select_label'] = "\${destination}";
+
 	//permission details
 		$y = 0;
 		$apps[$x]['permissions'][$y]['name'] = "extension_view";
@@ -82,6 +114,9 @@
 		$apps[$x]['permissions'][$y]['name'] = "extension_missed_call";
 		//$apps[$x]['permissions'][$y]['groups'][] = "superadmin";
 		//$apps[$x]['permissions'][$y]['groups'][] = "admin";
+		$y++;
+		$apps[$x]['permissions'][$y]['name'] = "extension_user_context";
+		$apps[$x]['permissions'][$y]['groups'][] = "superadmin";
 		$y++;
 
 	//schema details

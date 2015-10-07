@@ -27,7 +27,7 @@
 
 	if (!function_exists('software_version')) {
 		function software_version() {
-			return '3.9.0';
+			return '4.0.1';
 		}
 	}
 
@@ -771,15 +771,13 @@ function format_string ($format, $data) {
 
 //get the format and use it to format the phone number
 	function format_phone($phone_number) {
-		if (is_numeric($phone_number)) {
-			foreach ($_SESSION["format"]["phone"] as &$format) {
-				$format_count = substr_count($format, 'x');
-				$format_count = $format_count + substr_count($format, 'R');
-				$format_count = $format_count + substr_count($format, 'r');
-				if ($format_count == strlen($phone_number)) {
-					//format the number
-					$phone_number = format_string($format, $phone_number);
-				}
+		foreach ($_SESSION["format"]["phone"] as &$format) {
+			$format_count = substr_count($format, 'x');
+			$format_count = $format_count + substr_count($format, 'R');
+			$format_count = $format_count + substr_count($format, 'r');
+			if ($format_count == strlen($phone_number)) {
+				//format the number
+				$phone_number = format_string($format, $phone_number);
 			}
 		}
 		return $phone_number;
@@ -1313,5 +1311,19 @@ function number_pad($number,$n) {
 			return strtoupper($string);
 		}
 	}
+
+//email validate
+	function email_validate($strEmail){
+	   $validRegExp =  '/^[a-zA-Z0-9\._-]+@[a-zA-Z0-9\._-]+\.[a-zA-Z]{2,3}$/';
+	   // search email text for regular exp matches
+	   preg_match($validRegExp, $strEmail, $matches, PREG_OFFSET_CAPTURE);
+
+	   if (count($matches) == 0) {
+		return 0;
+	   }
+	   else {
+		return 1;
+	   }
+}
 
 ?>

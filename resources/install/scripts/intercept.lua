@@ -16,7 +16,7 @@
 --
 --	The Initial Developer of the Original Code is
 --	Mark J Crane <markjcrane@fusionpbx.com>
---	Copyright (C) 2010 - 2014
+--	Copyright (C) 2010 - 2015
 --	the Initial Developer. All Rights Reserved.
 --
 --	Contributor(s):
@@ -32,16 +32,14 @@
 	debug["sql"] = false;
 
 --include config.lua
-	scripts_dir = string.sub(debug.getinfo(1).source,2,string.len(debug.getinfo(1).source)-(string.len(argv[0])+1));
-	dofile(scripts_dir.."/resources/functions/config.lua");
-	dofile(config());
+	require "resources.functions.config";
 
 --connect to the database
 	if (file_exists(database_dir.."/core.db")) then
 		--dbh = freeswitch.Dbh("core:core"); -- when using sqlite
 		dbh = freeswitch.Dbh("sqlite://"..database_dir.."/core.db");
 	else
-		dofile(scripts_dir.."/resources/functions/database_handle.lua");
+		require "resources.functions.database_handle";
 		dbh = database_handle('switch');
 	end
 
@@ -49,7 +47,8 @@
 	api = freeswitch.API();
 
 --add the function
-	dofile(scripts_dir.."/resources/functions/trim.lua");
+	require "resources.functions.trim";
+	require "resources.functions.channel_utils";
 
 --exits the script if we didn't connect properly
 	assert(dbh:connected());
@@ -121,8 +120,9 @@ if ( session:ready() ) then
 		callee_num = '';
 
 	--check the database to get the uuid of a ringing call
-		sql = "select call_uuid as uuid, hostname, callee_num, ip_addr from channels ";
-		sql = sql .. "where callstate = 'RINGING' ";
+		sql = "select uuid, call_uuid, hostname, callee_num, ip_addr from channels ";
+		sql = sql .. "where callstate in ('RINGING', 'EARLY') ";
+		--sql = sql .. "AND direction = 'outbound' ";
 		if (extension) then
 			sql = sql .. "and presence_id = '"..extension.."@"..domain_name.."' ";
 		else
@@ -133,11 +133,18 @@ if ( session:ready() ) then
 		if (debug["sql"]) then
 			freeswitch.consoleLog("NOTICE", "sql "..sql.."\n");
 		end
-			dbh:query(sql, function(result)
+		dbh:query(sql, function(result)
 			--for key, val in pairs(result) do
 			--	freeswitch.consoleLog("NOTICE", "result "..key.." "..val.."\n");
 			--end
-			uuid = result.uuid;
+			if result.uuid == result.call_uuid then
+				uuid = channel_variable(result.uuid, 'ent_originate_aleg_uuid') or
+						channel_variable(result.uuid, 'cc_member_session_uuid') or
+						channel_variable(result.uuid, 'fifo_bridge_uuid') or
+						result.uuid
+			else
+				uuid = result.call_uuid;
+			end
 			call_hostname = result.hostname;
 			callee_num = result.callee_num;
 		end);

@@ -1369,7 +1369,15 @@ if (strlen($_SESSION['message']) > 0) {
 			<div id="domains_block">
 				<div id="domains_header">
 					<input id="domains_hide" type="button" class="btn" style="float: right" value="<?php echo $text['theme-button-close']; ?>">
-					<b style="color: #000;"><?php echo $text['theme-title-domains']; ?></b> (<?php echo sizeof($_SESSION['domains']); ?>)
+					<?php
+					if (file_exists($_SERVER["DOCUMENT_ROOT"]."/app/domains/domains.php")) {
+						$href = '/app/domains/domains.php';
+					}
+					else {
+						$href = '/core/domain_settings/domains.php';
+					}
+					echo "<a href=\"".$href."\"><b style=\"color: #000;\">".$text['theme-title-domains']."</b></a> (".sizeof($_SESSION['domains']).")";
+					?>
 					<br><br>
 					<input type="text" id="domain_filter" class="formfld" style="min-width: 100%; width: 100%;" placeholder="<?php echo $text['theme-label-search']; ?>" onkeyup="domain_search(this.value);">
 				</div>
@@ -1562,7 +1570,7 @@ if (strlen($_SESSION['message']) > 0) {
 									}
 
 								//logout icon
-									if ($_SESSION['username'] != '') {
+									if ($_SESSION['username'] != '' && $_SESSION['theme']['logout_icon_visible']['text'] == "true") {
 										$username_full = $_SESSION['username'].((count($_SESSION['domains']) > 1) ? "@".$_SESSION["user_context"] : null);
 										echo "<a href='".PROJECT_PATH."/logout.php' onclick=\"return confirm('".$text['theme-confirm-logout']."');\"><img id='logout_icon' src='".PROJECT_PATH."/themes/enhanced/images/icon_logout.png' style='width: 28px; height: 23px; border: none;' title='".$text['theme-label-logout']." ".$username_full."' align='absmiddle'></a>";
 										unset($username_full);

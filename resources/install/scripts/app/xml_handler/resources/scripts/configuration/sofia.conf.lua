@@ -36,7 +36,7 @@
 	if (XML_STRING == "-ERR NOT FOUND") or (XML_STRING == "-ERR CONNECTION FAILURE") then
 
 		--connect to the database
-			dofile(scripts_dir.."/resources/functions/database_handle.lua");
+			require "resources.functions.database_handle";
 			dbh = database_handle('system');
 
 		--exits the script if we didn't connect properly
@@ -119,6 +119,7 @@
 								sql = "select * from v_gateways ";
 								sql = sql .. "where enabled = 'true' and profile = '"..sip_profile_name.."' ";
 							end
+							sql = sql .. "and (g.hostname = '" .. hostname.. "' or g.hostname is null or g.hostname = '') ";
 							if (debug["sql"]) then
 								freeswitch.consoleLog("notice", "[xml_handler] SQL: " .. sql .. "\n");
 							end
@@ -261,7 +262,7 @@
 
 		--send the xml to the console
 			if (debug["xml_string"]) then
-				local file = assert(io.open("/tmp/sofia.conf.xml", "w"));
+				local file = assert(io.open(temp_dir .. "/sofia.conf.xml", "w"));
 				file:write(XML_STRING);
 				file:close();
 			end

@@ -65,7 +65,7 @@
 			--database connection
 				if (continue) then
 					--connect to the database
-						dofile(scripts_dir.."/resources/functions/database_handle.lua");
+						require "resources.functions.database_handle";
 						dbh = database_handle('system');
 
 					--exits the script if we didn't connect properly
@@ -192,7 +192,7 @@
 
 					--send the xml to the console
 						if (debug["xml_string"]) then
-							local file = assert(io.open("/tmp/xml_handler-" .. language .. ".xml", "w"));
+							local file = assert(io.open(temp_dir .. "/xml_handler-" .. language .. ".xml", "w"));
 							file:write(XML_STRING);
 							file:close();
 						end

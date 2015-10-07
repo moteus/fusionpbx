@@ -91,11 +91,11 @@
 		public function voicemail() {
 
 			//determine the voicemail_id
-				if (is_numeric($this->extension)) {
-					$this->voicemail_id = $this->extension;
+				if (is_numeric($this->number_alias)) {
+					$this->voicemail_id = $this->number_alias;
 				}
 				else {
-					$this->voicemail_id = $this->number_alias;
+					$this->voicemail_id = $this->extension;
 				}
 
 			//update the voicemail settings
@@ -159,16 +159,9 @@
 				//declare global variables
 					global $config, $db, $domain_uuid;
 
-				//get the context based from the domain_uuid
-					if (count($_SESSION['domains']) == 1) {
-						$user_context = "default";
-					}
-					else {
-						$user_context = $_SESSION['domains'][$domain_uuid]['domain_name'];
-					}
-
 				//get the domain_name
 					$domain_name = $_SESSION['domains'][$domain_uuid]['domain_name'];
+					$user_context = $domain_name;
 
 				//delete all old extensions to prepare for new ones
 					$dialplan_list = glob($_SESSION['switch']['extensions']['dir']."/".$user_context."/v_*.xml");

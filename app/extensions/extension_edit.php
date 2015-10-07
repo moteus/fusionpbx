@@ -85,7 +85,7 @@ else {
 			if (if_group("superadmin")) {
 				$accountcode = $_POST["accountcode"];
 			}
-			else if (if_group("admin") && $billing_app_exists) {
+			elseif (if_group("admin") && $billing_app_exists) {
 				$sql_accountcode = "SELECT COUNT(*) as count FROM v_billings WHERE domain_uuid = '".$_SESSION['domain_uuid']."' AND type_value='".$_POST["accountcode"]."'";
 				$prep_statement_accountcode = $db->prepare(check_sql($sql_accountcode));
 				$prep_statement_accountcode->execute();
@@ -328,7 +328,7 @@ if (count($_POST) > 0 && strlen($_POST["persistformvar"]) == 0) {
 		}
 
 	//set the default user context
-		if (if_group("superadmin")) {
+		if (permission_exists("extension_user_context")) {
 			//allow a user assigned to super admin to change the user_context
 		}
 		else {
@@ -634,7 +634,9 @@ if (count($_POST) > 0 && strlen($_POST["persistformvar"]) == 0) {
 					$sql .= "directory_exten_visible = '$directory_exten_visible', ";
 					$sql .= "limit_max = '$limit_max', ";
 					$sql .= "limit_destination = '$limit_destination', ";
-					$sql .= "user_context = '$user_context', ";
+					if (permission_exists("extension_user_context")) {
+						$sql .= "user_context = '$user_context', ";
+					}
 					if (permission_exists('extension_missed_call')) {
 						$sql .= "missed_call_app = '$missed_call_app', ";
 						$sql .= "missed_call_data = '$missed_call_data', ";
@@ -741,6 +743,9 @@ if (count($_POST) > 0 && strlen($_POST["persistformvar"]) == 0) {
 				//clear the cache
 					$cache = new cache;
 					$cache->delete("directory:".$extension."@".$user_context);
+					if (strlen($number_alias) > 0) {
+						$cache->delete("directory:".$number_alias."@".$user_context);
+					}
 			}
 
 		//show the action and redirect the user
@@ -847,7 +852,7 @@ if (count($_POST) > 0 && strlen($_POST["persistformvar"]) == 0) {
 			//get the voicemails
 				$sql = "select * from v_voicemails ";
 				$sql .= "where domain_uuid = '".$domain_uuid."' ";
-				$sql .= "and voicemail_id = '".((is_numeric($extension)) ? $extension : $number_alias)."' ";
+				$sql .= "and voicemail_id = '".((is_numeric($number_alias)) ? $number_alias : $extension)."' ";
 				$prep_statement = $db->prepare(check_sql($sql));
 				$prep_statement->execute();
 				$result = $prep_statement->fetchAll(PDO::FETCH_NAMED);
@@ -871,6 +876,66 @@ if (count($_POST) > 0 && strlen($_POST["persistformvar"]) == 0) {
 		$voicemail_local_after_email = $_SESSION['voicemail']['keep_local']['boolean'];
 	}
 
+//get the device lines
+	$sql = "SELECT d.device_mac_address, d.device_template, d.device_description, l.device_line_uuid, l.device_uuid, l.line_number ";
+	$sql .= "FROM v_device_lines as l, v_devices as d ";
+	$sql .= "WHERE (l.user_id = '".$extension."' or l.user_id = '".$number_alias."')";
+	$sql .= "AND l.domain_uuid = '".$domain_uuid."' ";
+	$sql .= "AND l.device_uuid = d.device_uuid ";
+	$sql .= "ORDER BY l.line_number, d.device_mac_address asc ";
+	$prep_statement = $db->prepare(check_sql($sql));
+	$prep_statement->execute();
+	$device_lines = $prep_statement->fetchAll(PDO::FETCH_NAMED);
+	unset($sql, $prep_statement);
+
+//get the devices
+	$sql = "SELECT * FROM v_devices ";
+	$sql .= "WHERE domain_uuid = '".$domain_uuid."' ";
+	$sql .= "ORDER BY device_mac_address asc ";
+	$prep_statement = $db->prepare(check_sql($sql));
+	$prep_statement->execute();
+	$devices = $prep_statement->fetchAll(PDO::FETCH_NAMED);
+	unset($sql, $prep_statement);
+
+//get assigned users
+	$sql = "SELECT u.username, e.user_uuid FROM v_extension_users as e, v_users as u ";
+	$sql .= "where e.user_uuid = u.user_uuid  ";
+	$sql .= "and u.user_enabled = 'true' ";
+	$sql .= "and e.domain_uuid = '".$domain_uuid."' ";
+	$sql .= "and e.extension_uuid = '".$extension_uuid."' ";
+	$sql .= "order by u.username asc ";
+	$prep_statement = $db->prepare(check_sql($sql));
+	$prep_statement->execute();
+	$assigned_users = $prep_statement->fetchAll(PDO::FETCH_NAMED);
+	foreach($assigned_users as $field) {
+		$assigned_user_uuids[] = $field['user_uuid'];
+	}
+	unset($sql, $prep_statement);
+
+//get the users
+	$sql = "SELECT * FROM v_users ";
+	$sql .= "where domain_uuid = '".$domain_uuid."' ";
+	foreach($assigned_user_uuids as $assigned_user_uuid) {
+		$sql .= "and user_uuid <> '".$assigned_user_uuid."' ";
+	}
+	unset($assigned_user_uuids);
+	$sql .= "and user_enabled = 'true' ";
+	$sql .= "order by username asc ";
+	$prep_statement = $db->prepare(check_sql($sql));
+	$prep_statement->execute();
+	$users = $prep_statement->fetchAll(PDO::FETCH_NAMED);
+	unset($sql, $prep_statement);
+
+//get the destinations
+	$sql = "select * from v_destinations ";
+	$sql .= "where domain_uuid = '".$domain_uuid."' ";
+	$sql .= "and destination_type = 'inbound' ";
+	$sql .= "order by destination_number asc ";
+	$prep_statement = $db->prepare(check_sql($sql));
+	$prep_statement->execute();
+	$destinations = $prep_statement->fetchAll(PDO::FETCH_ASSOC);
+	unset ($sql, $prep_statement);
+
 //set the defaults
 	if (strlen($limit_max) == 0) { $limit_max = '5'; }
 	if (strlen($call_timeout) == 0) { $call_timeout = '30'; }
@@ -881,7 +946,7 @@ if (count($_POST) > 0 && strlen($_POST["persistformvar"]) == 0) {
 	if ($action == "update") {
 	$document['title'] = $text['title-extension-edit'];
 	}
-	else if ($action == "add") {
+	elseif ($action == "add") {
 		$document['title'] = $text['title-extension-add'];
 	}
 
@@ -917,7 +982,8 @@ if (count($_POST) > 0 && strlen($_POST["persistformvar"]) == 0) {
 	echo "}\n";
 	echo "</script>";
 
-	echo "<form method='post' name='frm' action=''>\n";
+	echo "<form method='post' name='frm' action='' autocomplete='off'>\n";
+	echo "<input style='display:none;' type='password' name='autocomplete'>";
 	echo "<table width='100%' border='0' cellpdding='0' cellspacing='0'>\n";
 	echo "<tr>\n";
 	if ($action == "add") {
@@ -977,7 +1043,7 @@ if (count($_POST) > 0 && strlen($_POST["persistformvar"]) == 0) {
 		echo "    ".$text['label-password']."\n";
 		echo "</td>\n";
 		echo "<td class='vtable' align='left'>\n";
-		echo "    <input class='formfld' type='password' name='password' id='password' onmouseover=\"this.type='text';\" onfocus=\"this.type='text';\" onmouseout=\"if (!$(this).is(':focus')) { this.type='password'; }\" onblur=\"this.type='password';\" autocomplete='off' maxlength='50' value=\"$password\">\n";
+		echo "    <input class='formfld' type='password' name='password' id='password' onmouseover=\"this.type='text';\" onfocus=\"this.type='text';\" onmouseout=\"if (!$(this).is(':focus')) { this.type='password'; }\" onblur=\"this.type='password';\" maxlength='50' value=\"$password\">\n";
 		echo "    <br />\n";
 		echo "    ".$text['description-password']."\n";
 		echo "</td>\n";
@@ -1032,20 +1098,9 @@ if (count($_POST) > 0 && strlen($_POST["persistformvar"]) == 0) {
 		echo "	<tr>";
 		echo "		<td class='vncell' valign='top'>".$text['label-user_list']."</td>";
 		echo "		<td class='vtable'>";
-
-		$sql = "SELECT u.username, e.user_uuid FROM v_extension_users as e, v_users as u ";
-		$sql .= "where e.user_uuid = u.user_uuid  ";
-		$sql .= "and u.user_enabled = 'true' ";
-		$sql .= "and e.domain_uuid = '".$domain_uuid."' ";
-		$sql .= "and e.extension_uuid = '".$extension_uuid."' ";
-		$sql .= "order by u.username asc ";
-		$prep_statement = $db->prepare(check_sql($sql));
-		$prep_statement->execute();
-		$result = $prep_statement->fetchAll(PDO::FETCH_NAMED);
-		$result_count = count($result);
-		if ($result_count > 0) {
+		if (count($assigned_users) > 0) {
 			echo "		<table width='30%'>\n";
-			foreach($result as $field) {
+			foreach($assigned_users as $field) {
 				echo "		<tr>\n";
 				echo "			<td class='vtable'><a href='/core/users/usersupdate.php?id=".$field['user_uuid']."'>".$field['username']."</a></td>\n";
 				echo "			<td>\n";
@@ -1053,30 +1108,19 @@ if (count($_POST) > 0 && strlen($_POST["persistformvar"]) == 0) {
 				//echo "				<a href='extension_edit.php?id=".$extension_uuid."&domain_uuid=".$_SESSION['domain_uuid']."&user_uuid=".$field['user_uuid']."&a=delete' alt='".$text['button-delete']."' onclick=\"return confirm('".$text['confirm-delete']."')\">$v_link_label_delete</a>\n";
 				echo "			</td>\n";
 				echo "		</tr>\n";
-				$assigned_user_uuids[] = $field['user_uuid'];
 			}
 			echo "		</table>\n";
 			echo "		<br />\n";
 		}
-		$sql = "SELECT * FROM v_users ";
-		$sql .= "where domain_uuid = '".$domain_uuid."' ";
-		foreach($assigned_user_uuids as $assigned_user_uuid) {
-			$sql .= "and user_uuid <> '".$assigned_user_uuid."' ";
-		}
-		unset($assigned_user_uuids);
-		$sql .= "and user_enabled = 'true' ";
-		$sql .= "order by username asc ";
-		$prep_statement = $db->prepare(check_sql($sql));
-		$prep_statement->execute();
+
 		echo "			<select name='user_uuid' id='user_uuid' class='formfld' style='width: auto;'>\n";
 		echo "			<option value=''></option>\n";
-		$result = $prep_statement->fetchAll(PDO::FETCH_NAMED);
-		foreach($result as $field) {
+		foreach($users as $field) {
 			echo "			<option value='".$field['user_uuid']."'>".$field['username']."</option>\n";
 		}
 		echo "			</select>";
 		echo "			<input type=\"submit\" class='btn' value=\"".$text['button-add']."\">\n";
-		unset($sql, $result);
+		
 		echo "			<br>\n";
 		echo "			".$text['description-user_list']."\n";
 		echo "			<br />\n";
@@ -1126,18 +1170,7 @@ if (count($_POST) > 0 && strlen($_POST["persistformvar"]) == 0) {
 			//}
 			echo "				</td>\n";
 			echo "			</tr>\n";
-
-			$sql = "SELECT d.device_mac_address, d.device_template, d.device_description, l.device_line_uuid, l.device_uuid, l.line_number ";
-			$sql .= "FROM v_device_lines as l, v_devices as d ";
-			$sql .= "WHERE l.user_id = '".$extension."' ";
-			$sql .= "AND l.domain_uuid = '".$domain_uuid."' ";
-			$sql .= "AND l.device_uuid = d.device_uuid ";
-			$sql .= "ORDER BY l.line_number, d.device_mac_address asc ";
-			$prep_statement = $db->prepare(check_sql($sql));
-			$prep_statement->execute();
-			$result = $prep_statement->fetchAll(PDO::FETCH_NAMED);
-			$result_count = count($result);
-			foreach($result as $row) {
+			foreach($device_lines as $row) {
 				$device_mac_address = $row['device_mac_address'];
 				$device_mac_address = substr($device_mac_address, 0,2).'-'.substr($device_mac_address, 2,2).'-'.substr($device_mac_address, 4,2).'-'.substr($device_mac_address, 6,2).'-'.substr($device_mac_address, 8,2).'-'.substr($device_mac_address, 10,2);
 				echo "		<tr>\n";
@@ -1199,16 +1232,10 @@ if (count($_POST) > 0 && strlen($_POST["persistformvar"]) == 0) {
 			}
 			</script>
 			<?php
-			$sql = "SELECT * FROM v_devices ";
-			$sql .= "WHERE domain_uuid = '".$domain_uuid."' ";
-			$sql .= "ORDER BY device_mac_address asc ";
-			$prep_statement = $db->prepare(check_sql($sql));
-			$prep_statement->execute();
-			$result = $prep_statement->fetchAll(PDO::FETCH_NAMED);
 			echo "				<select id=\"device_mac_address\" name=\"device_mac_address\" class='formfld' style='width: 180px;' onchange='changeToInput_device_mac_address(this);this.style.visibility = \"hidden\";'>\n";
 			echo "					<option value=''></option>\n";
-			if (count($result) > 0) {
-				foreach($result as $field) {
+			if (count($devices) > 0) {
+				foreach($devices as $field) {
 					if (strlen($field["device_mac_address"]) > 0) {
 						if ($field_current_value == $field["device_mac_address"]) {
 							echo "					<option value=\"".$field["device_mac_address"]."\" selected=\"selected\">".$field["device_mac_address"]."</option>\n";
@@ -1219,7 +1246,6 @@ if (count($_POST) > 0 && strlen($_POST["persistformvar"]) == 0) {
 					}
 				}
 			}
-			unset($sql, $result, $result_count);
 			echo "				</select>\n";
 			echo "				<input type='button' id='btn_select_to_input_device_mac_address' class='btn' name='' alt='".$text['button-back']."' onclick='changeToInput_device_mac_address(document.getElementById(\"device_mac_address\"));this.style.visibility = \"hidden\";' value='&#9665;'>\n";
 			echo "	</td>\n";
@@ -1323,7 +1349,7 @@ if (count($_POST) > 0 && strlen($_POST["persistformvar"]) == 0) {
 	echo "    ".$text['label-effective_caller_id_number']."\n";
 	echo "</td>\n";
 	echo "<td class='vtable' align='left'>\n";
-	echo "    <input class='formfld' type='number' name='effective_caller_id_number' min='0' step='1' maxlength='255' value=\"$effective_caller_id_number\">\n";
+	echo "    <input class='formfld' type='text' name='effective_caller_id_number' min='0' step='1' maxlength='255' value=\"$effective_caller_id_number\">\n";
 	echo "<br />\n";
 	echo $text['description-effective_caller_id_number']."\n";
 	echo "</td>\n";
@@ -1335,17 +1361,10 @@ if (count($_POST) > 0 && strlen($_POST["persistformvar"]) == 0) {
 	echo "</td>\n";
 	echo "<td class='vtable' align='left'>\n";
 	if (permission_exists('outbound_caller_id_select')) {
-		$sql = "select * from v_destinations ";
-		$sql .= "where domain_uuid = '".$domain_uuid."' ";
-		$sql .= "and destination_type = 'inbound' ";
-		$sql .= "order by destination_number asc ";
-		$prep_statement = $db->prepare(check_sql($sql));
-		$prep_statement->execute();
-		$result = $prep_statement->fetchAll(PDO::FETCH_ASSOC);
-		if (count($result) > 0) {
+		if (count($destinations) > 0) {
 			echo "	<select name='outbound_caller_id_name' id='outbound_caller_id_name' class='formfld'>\n";
 			echo "	<option value=''></option>\n";
-			foreach ($result as &$row) {
+			foreach ($destinations as &$row) {
 				if ($outbound_caller_id_name == $row["destination_caller_id_name"]) {
 					echo "		<option value='".$row["destination_caller_id_name"]."' selected='selected'>".$row["destination_caller_id_name"]."</option>\n";
 				}
@@ -1360,7 +1379,6 @@ if (count($_POST) > 0 && strlen($_POST["persistformvar"]) == 0) {
 		else {
 			echo "	<input type=\"button\" class=\"btn\" name=\"\" alt=\"".$text['button-add']."\" onclick=\"window.location='".PROJECT_PATH."/app/destinations/destinations.php'\" value='".$text['button-add']."'>\n";
 		}
-		unset ($prep_statement);
 	}
 	else {
 		echo "    <input class='formfld' type='text' name='outbound_caller_id_name' maxlength='255' value=\"$outbound_caller_id_name\">\n";
@@ -1376,17 +1394,10 @@ if (count($_POST) > 0 && strlen($_POST["persistformvar"]) == 0) {
 	echo "</td>\n";
 	echo "<td class='vtable' align='left'>\n";
 	if (permission_exists('outbound_caller_id_select')) {
-		$sql = "select * from v_destinations ";
-		$sql .= "where domain_uuid = '".$domain_uuid."' ";
-		$sql .= "and destination_type = 'inbound' ";
-		$sql .= "order by destination_number asc ";
-		$prep_statement = $db->prepare(check_sql($sql));
-		$prep_statement->execute();
-		$result = $prep_statement->fetchAll(PDO::FETCH_ASSOC);
-		if (count($result) > 0) {
+		if (count($destinations) > 0) {
 			echo "	<select name='outbound_caller_id_number' id='outbound_caller_id_number' class='formfld'>\n";
 			echo "	<option value=''></option>\n";
-			foreach ($result as &$row) {
+			foreach ($destinations as &$row) {
 				if ($outbound_caller_id_number == $row["destination_caller_id_number"]) {
 					echo "		<option value='".$row["destination_caller_id_number"]."' selected='selected'>".$row["destination_caller_id_number"]."</option>\n";
 				}
@@ -1404,7 +1415,7 @@ if (count($_POST) > 0 && strlen($_POST["persistformvar"]) == 0) {
 		unset ($prep_statement);
 	}
 	else {
-		echo "    <input class='formfld' type='number' name='outbound_caller_id_number' maxlength='255' min='0' step='1' value=\"$outbound_caller_id_number\">\n";
+		echo "    <input class='formfld' type='text' name='outbound_caller_id_number' maxlength='255' min='0' step='1' value=\"$outbound_caller_id_number\">\n";
 		echo "<br />\n";
 		echo $text['description-outbound_caller_id_number-custom']."\n";
 	}
@@ -1427,7 +1438,7 @@ if (count($_POST) > 0 && strlen($_POST["persistformvar"]) == 0) {
 	echo "    ".$text['label-emergency_caller_id_number']."\n";
 	echo "</td>\n";
 	echo "<td class='vtable' align='left'>\n";
-	echo "    <input class='formfld' type='number' name='emergency_caller_id_number' maxlength='255' min='0' step='1' value=\"$emergency_caller_id_number\">\n";
+	echo "    <input class='formfld' type='text' name='emergency_caller_id_number' maxlength='255' min='0' step='1' value=\"$emergency_caller_id_number\">\n";
 	echo "<br />\n";
 	echo $text['description-emergency_caller_id_number']."\n";
 	echo "</td>\n";

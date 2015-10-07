@@ -32,28 +32,16 @@
 	debug["sql"] = false;
 
 --define the trim function
-	function trim (s)
-		return (string.gsub(s, "^%s*(.-)%s*$", "%1"))
-	end
+	require "resources.functions.trim"
 
 --define the explode function
-	function explode ( seperator, str ) 
-		local pos, arr = 0, {}
-		for st, sp in function() return string.find( str, seperator, pos, true ) end do -- for each divider found
-			table.insert( arr, string.sub( str, pos, st-1 ) ) -- attach chars left of current divider
-			pos = sp + 1 -- jump past current divider
-		end
-		table.insert( arr, string.sub( str, pos ) ) -- attach chars right of last divider
-		return arr
-	end
+	require "resources.functions.explode"
 
 --create the api object
 	api = freeswitch.API();
 
 --include config.lua
-	scripts_dir = string.sub(debug.getinfo(1).source,2,string.len(debug.getinfo(1).source)-(string.len(argv[0])+1));
-	dofile(scripts_dir.."/resources/functions/config.lua");
-	dofile(config());
+	require "resources.functions.config";
 
 --check if the session is ready
 	if (session:ready()) then
@@ -83,7 +71,7 @@
 			session:sleep(1000);
 
 		--connect to the database
-			dofile(scripts_dir.."/resources/functions/database_handle.lua");
+			require "resources.functions.database_handle";
 			dbh = database_handle('system');
 
 		--request id is true
@@ -140,11 +128,12 @@
 				status = dbh:query(sql, function(row)
 					extension_uuid = row.extension_uuid;
 					extension = row.extension;
-					number_alias = row.number_alias;
+					number_alias = row.number_alias or '';
 					accountcode = row.accountcode;
 					forward_all_enabled = row.forward_all_enabled;
 					forward_all_destination = row.forward_all_destination;
 					follow_me_uuid = row.follow_me_uuid;
+					toll_allow = row.toll_allow or '';
 					--freeswitch.consoleLog("NOTICE", "[call forward] extension "..row.extension.."\n");
 					--freeswitch.consoleLog("NOTICE", "[call forward] accountcode "..row.accountcode.."\n");
 				end);
@@ -160,7 +149,7 @@
 			end
 
 		--get the forward destination
-			if (session:ready() and enabled == "true" or enabled == "toggle") then
+			if (session:ready() and (enabled == "true" or enabled == "toggle") ) then
 				if (string.len(forward_all_destination) == 0) then
 					forward_all_destination = session:playAndGetDigits(min_digits, max_digits, max_tries, digit_timeout, "#", sounds_dir.."/"..default_language.."/"..default_dialect.."/"..default_voice.."/ivr/ivr-enter_destination_telephone_number.wav", "", "\\d+");
 				end
@@ -183,6 +172,7 @@
 				dial_string = dial_string .. ",sip_invite_domain="..domain_name;
 				dial_string = dial_string .. ",domain_name="..domain_name;
 				dial_string = dial_string .. ",domain="..domain_name;
+				dial_string = dial_string .. ",toll_allow='"..toll_allow.."'";
 				if (accountcode ~= nil) then
 					dial_string = dial_string .. ",accountcode="..accountcode;
 				end
@@ -253,7 +243,7 @@
 				sql = "update v_extensions set ";
 				if (enabled == "true") then
 					sql = sql .. "forward_all_destination = '"..forward_all_destination.."', ";
-					sql = sql .. "dial_string = '"..dial_string.."', ";
+					sql = sql .. "dial_string = '"..dial_string:gsub("'", "''").."', ";
 					sql = sql .. "do_not_disturb = 'false', ";
 				else
 					sql = sql .. "forward_all_destination = null, ";
@@ -266,15 +256,18 @@
 					freeswitch.consoleLog("notice", "[call_forward] "..sql.."\n");
 				end
 				dbh:query(sql);
-			end
 
-		--clear the cache and hangup
-			if (session:ready()) then
 				--clear the cache
 					if (extension ~= nil) then
 						api:execute("memcache", "delete directory:"..extension.."@"..domain_name);
+						if #number_alias > 0 then
+							api:execute("memcache", "delete directory:"..number_alias.."@"..domain_name);
+						end
 					end
+			end
 
+		-- hangup
+			if (session:ready()) then
 				--wait for the file to be written before proceeding
 					session:sleep(100);
 
