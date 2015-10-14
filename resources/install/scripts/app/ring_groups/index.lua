@@ -12,7 +12,7 @@
 --	   notice, this list of conditions and the following disclaimer in the
 --	   documentation and/or other materials provided with the distribution.
 --
---	THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES,
+--	THIS SOFTWARE IS PROVIDED ''AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES,
 --	INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
 --	AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
 --	AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY,
@@ -101,6 +101,7 @@ local log = require "resources.functions.log".ring_group
 	status = dbh:query(sql, function(row)
 		domain_uuid = row["domain_uuid"];
 		ring_group_name = row["ring_group_name"];
+		ring_group_extension = row["ring_group_extension"];
 		ring_group_forward_enabled = row["ring_group_forward_enabled"];
 		ring_group_forward_destination = row["ring_group_forward_destination"];
 		ring_group_cid_name_prefix = row["ring_group_cid_name_prefix"];
@@ -152,6 +153,9 @@ local log = require "resources.functions.log".ring_group
 					subject = subject:gsub("${caller_id_name}", caller_id_name);
 					subject = subject:gsub("${caller_id_number}", caller_id_number);
 					subject = subject:gsub("${ring_group_name}", ring_group_name);
+					subject = subject:gsub("${ring_group_extension}", ring_group_extension);
+					subject = subject:gsub("${sip_to_user}", ring_group_name);
+					subject = subject:gsub("${dialed_user}", ring_group_extension);
 					subject = trim(subject);
 					subject = '=?utf-8?B?'..base64.encode(subject)..'?=';
 
@@ -162,6 +166,9 @@ local log = require "resources.functions.log".ring_group
 					body = body:gsub("${caller_id_name}", caller_id_name);
 					body = body:gsub("${caller_id_number}", caller_id_number);
 					body = body:gsub("${ring_group_name}", ring_group_name);
+					body = body:gsub("${ring_group_extension}", ring_group_extension);
+					body = body:gsub("${sip_to_user}", ring_group_name);
+					body = body:gsub("${dialed_user}", ring_group_extension);
 					body = body:gsub(" ", "&nbsp;");
 					body = body:gsub("%s+", "");
 					body = body:gsub("&nbsp;", " ");
@@ -619,36 +626,27 @@ local log = require "resources.functions.log".ring_group
 								app_data = app_data:gsub("%]", "}");
 							end
 							freeswitch.consoleLog("NOTICE", "[ring group] app_data: "..app_data.."\n");
+							-- log.noticef("bridge begin: originate_disposition:%s answered:%s ready:%s bridged:%s", session:getVariable("originate_disposition"), session:answered() and "true" or "false", session:ready() and "true" or "false", session:bridged() and "true" or "false")
 							session:execute("bridge", app_data);
 							-- log.noticef("bridge done: originate_disposition:%s answered:%s ready:%s bridged:%s", session:getVariable("originate_disposition"), session:answered() and "true" or "false", session:ready() and "true" or "false", session:bridged() and "true" or "false")
 						end
 
 					--timeout destination
 						if (app_data ~= nil) then
-							if ring_group_strategy == "enterprise"
-								and ( true
-									--- I see 2 errors here `failure` and `PICKED_OFF` 
-									--- but they be more. I think check `answered` is enough.
-									-- or session:getVariable("originate_disposition") == "failure"
-									-- or session:getVariable("originate_disposition") == "PICKED_OFF"
-								)
-								and session:answered() then
-									-- for enterprise calls when intercept we get "failure" but session answered
-									return
-							end
-
-							if (session:getVariable("originate_disposition") == "ALLOTTED_TIMEOUT" 
+							if session:ready() and (
+								session:getVariable("originate_disposition")  == "ALLOTTED_TIMEOUT" 
 								or session:getVariable("originate_disposition") == "NO_ANSWER" 
 								or session:getVariable("originate_disposition") == "NO_USER_RESPONSE" 
 								or session:getVariable("originate_disposition") == "USER_NOT_REGISTERED" 
 								or session:getVariable("originate_disposition") == "NORMAL_TEMPORARY_FAILURE" 
 								or session:getVariable("originate_disposition") == "NO_ROUTE_DESTINATION" 
 								or session:getVariable("originate_disposition") == "USER_BUSY"
-								or session:getVariable("originate_disposition") == "failure") then
-									--send missed call notification
-										missed();
-									--execute the time out action
-										session:execute(ring_group_timeout_app, ring_group_timeout_data);
+								or session:getVariable("originate_disposition") == "failure"
+							) then
+								--send missed call notification
+									missed();
+								--execute the time out action
+									session:execute(ring_group_timeout_app, ring_group_timeout_data);
 							end
 						else
 							if (ring_group_timeout_app ~= nil) then
