@@ -99,10 +99,13 @@ function Database.__self_test__(name)
 
 	db:release()
 	assert(not db:connected())
+	print(" * databse - OK!")
 end
 
 end
 
--- Database.__self_test__()
+-- if debug.self_test then
+--   Database.__self_test__()
+-- end
 
 return Database
