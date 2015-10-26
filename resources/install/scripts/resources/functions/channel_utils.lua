@@ -1,4 +1,6 @@
 require 'resources.config'
+require 'resources.functions.trim'
+
 local Database = require 'resources.functions.database'
 
 local api = api or freeswitch.API()
