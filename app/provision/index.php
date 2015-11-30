@@ -44,6 +44,15 @@ openlog("fusion-provisioning", LOG_PID | LOG_PERROR, LOG_LOCAL0);
 	//	$device_template = check_str($_REQUEST['template']);
 	//}
 
+//get the mac address for Cisco 79xx in the URL as &name=SEP000000000000
+	if (empty($mac)){
+		$name = check_str($_REQUEST['name']);
+		if (substr($name, 0, 3) == "SEP") {
+			$mac = strtolower(substr($name, 3, 12));
+			unset($name);
+		}
+	}
+
 // Escence make request based on UserID for Memory keys
 /*
 The file name is fixed to `Account1_Extern.xml`.
@@ -299,6 +308,18 @@ The file name is fixed to `Account1_Extern.xml`.
 
 //deliver the customized config over HTTP/HTTPS
 	//need to make sure content-type is correct
+	if ($_REQUEST['content_type'] == 'application/octet-stream') {
+		$file_name = str_replace("{\$mac}",$mac,$file);
+		header('Content-Description: File Transfer');
+		header('Content-Type: application/octet-stream');
+		header('Content-Disposition: attachment; filename="'.basename($file_name).'"');
+		header('Content-Transfer-Encoding: binary');
+		header('Expires: 0');
+		header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
+		header('Pragma: public');
+		header('Content-Length: ' . filesize($file_contents));
+	}
+	else {
 	$cfg_ext = ".cfg";
 	if ($device_vendor === "aastra" && strrpos($file, $cfg_ext, 0) === strlen($file) - strlen($cfg_ext)) {
 		header("Content-Type: text/plain");
@@ -313,6 +334,7 @@ The file name is fixed to `Account1_Extern.xml`.
 	} else {
 		header("Content-Type: text/xml; charset=utf-8");
 		header("Content-Length: ".strlen($file_contents));
+	}
 	}
 	echo $file_contents;
 	closelog();
