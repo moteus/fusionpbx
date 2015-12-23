@@ -26,6 +26,7 @@
 include "root.php";
 
 // start the session
+	ini_set("session.cookie_httponly", True);
 	session_start();
 
 //if config.php file does not exist then redirect to the install page
@@ -58,6 +59,9 @@ include "root.php";
 	if (strlen($_SESSION["username"]) > 0) {
 		if (strlen($_SESSION['login']['destination']['url']) > 0) {
 			header("Location: ".$_SESSION['login']['destination']['url']);
+		}elseif(file_exists($_SERVER['DOCUMENT_ROOT'].PROJECT_PATH."core/user_settings/user_dashboard.php"))
+		{
+			header("Location: ".$_SERVER['DOCUMENT_ROOT'].PROJECT_PATH."core/user_settings/user_dashboard.php");
 		}
 		else {
 			require_once "resources/header.php";
