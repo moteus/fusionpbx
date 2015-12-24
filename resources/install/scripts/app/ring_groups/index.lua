@@ -432,13 +432,24 @@ local log = require "resources.functions.log".ring_group
 					end
 					row.record_session = record_session
 
+					if domain_name == 'spim.intelcom-tg.ru' then
+						local inbound_number = session:getVariable("inbound_number") or session:getVariable("sip_to_user") or ""
+						local url = "http://spim.ru/api/callinfo.php?id=%s&ani=%s&num=%s&ext=%s&state="
+						url = string.format(url, uuid, caller_id_number or "", inbound_number or "", destination_number)
+						local str1 = ",execute_on_ring_2=curl " .. url .. "RINGING"
+						local str2 = ",execute_on_answer_2=curl " .. url .. "ANSWER"
+						row._spim_http = str1 .. str2
+					else
+						row._spim_http = ""
+					end
+
 				--process according to user_exists, sip_uri, external number
 					if (user_exists == "true") then
 						--get the extension_uuid
 						cmd = "user_data ".. destination_number .."@"..domain_name.." var extension_uuid";
 						extension_uuid = trim(api:executeString(cmd));
 						--send to user
-						local dial_string_to_user = "[sip_invite_domain="..domain_name..","..group_confirm.."leg_timeout="..destination_timeout..","..delay_name.."="..destination_delay..",dialed_extension=" .. row.destination_number .. ",extension_uuid="..extension_uuid .. row.record_session .. "]user/" .. row.destination_number .. "@" .. domain_name;
+						local dial_string_to_user = "[sip_invite_domain="..domain_name..","..group_confirm.."leg_timeout="..destination_timeout..","..delay_name.."="..destination_delay..",dialed_extension=" .. row.destination_number .. ",extension_uuid="..extension_uuid .. row.record_session .. row._spim_http .. "]user/" .. row.destination_number .. "@" .. domain_name;
 						if (ring_group_skip_active == "true") then
 							local channels = channels_by_number(destination_number, domain_name)
 							if (not channels) or #channels == 0 then
@@ -593,7 +604,7 @@ local log = require "resources.functions.log".ring_group
 
 								--send the call to the destination
 									if (user_exists == "true") then
-										dial_string = "["..group_confirm.."sip_invite_domain="..domain_name..",dialed_extension=" .. destination_number .. ",extension_uuid="..extension_uuid..",domain_name="..domain_name..",domain_uuid="..domain_uuid..row.record_session.."]user/" .. destination_number .. "@" .. domain_name;
+										dial_string = "["..group_confirm.."sip_invite_domain="..domain_name..",dialed_extension=" .. destination_number .. ",extension_uuid="..extension_uuid..",domain_name="..domain_name..",domain_uuid="..domain_uuid..row.record_session..row._spim_http.."]user/" .. destination_number .. "@" .. domain_name;
 										session:execute("bridge", dial_string);
 									elseif (tonumber(destination_number) == nil) then
 										--sip uri
