@@ -7,6 +7,11 @@
 			<!--<action application="set" data="domain_name=${transfer_context}"/>-->
 			<!--<action application="att_xfer" data="sofia/internal/${digits}@${transfer_context}"/>-->
 			<action application="att_xfer" data="user/${digits}@${domain_name}"/>
+			<action application="execute_extension" data="att_xfer_again XML ${context}"/>
+		</condition>
+		<condition field="destination_number" expression="^att_xfer_again$"/>
+		<condition field="${digits}" expression="^\d">
+			<action application="execute_extension" data="att_xfer XML ${context}"/>
 		</condition>
 	</extension>
 </context>

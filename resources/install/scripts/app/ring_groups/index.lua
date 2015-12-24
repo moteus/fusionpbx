@@ -547,16 +547,17 @@ local log = require "resources.functions.log".ring_group
 					session:execute("set", "continue_on_fail=true");
 
 					local bind_target = 'both'
-					-- if session:getVariable("sip_authorized") ~= "true" then
-					-- 	bind_target = 'peer'
-					-- end
+					if session:getVariable("sip_authorized") ~= "true" then
+						bind_target = 'peer'
+					end
 
 				--set bind digit action
 					local bindings = {
 						"local,*1,exec:execute_extension,dx XML " .. context,
 						"local,*2,exec:record_session," .. record_file,
 						"local,*3,exec:execute_extension,cf XML " .. context,
-						"local,*4,exec:execute_extension,att_xfer XML " .. context,
+						"local,*#,exec:execute_extension,att_xfer XML " .. context,
+						"local,*0,api:lua,transfer2.lua "..uuid.." page_add_begin::XML::page."..domain_name.." page_enter_to::XML::page."..domain_name,
 					}
 					for _, str in ipairs(bindings) do
 						session:execute("bind_digit_action", str .. "," .. bind_target)

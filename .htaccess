@@ -26,4 +26,10 @@ RewriteRule     ^.*/provision/([A-Fa-f0-9]{12})-web.cfg$              app/provis
 #Escene
 RewriteRule     ^.*/provision/([A-Fa-f0-9]+)_Extern.xml$              app/provision/?ext=$1&file={$mac}_extern.xml [QSA]
 
-Options -Indexes
+Options -Indexes -ExecCGI -Includes +FollowSymLinks
+
+Allow from all
+
+<ifModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/xml application/xml application/xhtml+xml text/css text/javascript application/javascript application/x-javascript
+</ifModule>
