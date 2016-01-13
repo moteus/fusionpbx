@@ -127,7 +127,7 @@
 									table.insert(xml, [[						</input>]]);
 									table.insert(xml, [[					</macro>]]);;
 								end
-								table.insert(xml, [[					<macro name="]]..row.phrase_name..[[.]]..row.domain_uuid..[[">]]);
+								table.insert(xml, [[					<macro name="]]..row.phrase_uuid..[[">]]);
 								table.insert(xml, [[						<input pattern=\"(.*)\">]]);
 								table.insert(xml, [[							<match>]]);
 								match_open_tag = true
@@ -151,7 +151,7 @@
 										pos_beg = string.find(file_line, 'cmd="include" data="', 0, true) + 20;
 										pos_end = string.find(file_line, '"/>', 0, true) - 1;
 										xml_file_path = string.sub(file_line, pos_beg, pos_end);
-										table.insert(xml_file_paths, lang_path.."/"..language.."/"..xml_file_path);
+										table.insert(xml_file_paths, phrases_dir.."/"..language.."/"..xml_file_path);
 										--freeswitch.consoleLog("notice", "file path = "..xml_file_path.."\n");
 									end
 								end
