@@ -336,19 +336,27 @@
 								do_not_disturb = row.do_not_disturb;
 
 							-- check matching UserID and AuthName
-								if sip_auth_method and (METHODS[sip_auth_method] or METHODS._ANY_) then
-									continue = (sip_from_user == user) and ((sip_from_number == from_user) or (from_user == user))
+								if sip_auth_method then
+									local check_from_number = METHODS[sip_auth_method] or METHODS._ANY_
+									if DIAL_STRING_BASED_ON_USERID then
+										continue = (sip_from_user == user) and ((not check_from_number) or (from_user == sip_from_number))
+									else
+										continue = (sip_from_user == user) and ((not check_from_number) or (from_user == user))
+									end
+
 									if not continue then
 										XML_STRING = nil;
 										return 1;
 									end
 								end
 
+							--set the presence_id
+								presence_id = (NUMBER_AS_PRESENCE_ID and sip_from_number or sip_from_user) .. "@" .. domain_name;
+
 							--set the dial_string
 								if (string.len(row.dial_string) > 0) then
 									dial_string = row.dial_string;
 								else
-										local presence_id = (NUMBER_AS_PRESENCE_ID and sip_from_number or sip_from_user) .. "@" .. domain_name;
 										local destination = (DIAL_STRING_BASED_ON_USERID and sip_from_number or sip_from_user) .. "@" .. domain_name;
 									--set a default dial string
 										if (dial_string == null) then
@@ -478,6 +486,7 @@
 							table.insert(xml, [[								<variable name="call_timeout" value="]] .. call_timeout .. [["/>]]);
 							table.insert(xml, [[								<variable name="caller_id_name" value="]] .. sip_from_user .. [["/>]]);
 							table.insert(xml, [[								<variable name="caller_id_number" value="]] .. sip_from_number .. [["/>]]);
+							table.insert(xml, [[								<variable name="presence_id" value="]] .. presence_id .. [["/>]]);
 							if (string.len(call_group) > 0) then
 								table.insert(xml, [[								<variable name="call_group" value="]] .. call_group .. [["/>]]);
 							end
@@ -631,14 +640,23 @@
 					end
 			end
 
-			if XML_STRING and (not loaded_from_db)
-				and sip_auth_method and (METHODS[sip_auth_method] or METHODS._ANY_)
-			then
-					local user_id = api:execute("user_data", from_user .. "@" .. domain_name .." attr id")
-				--disable registration for number-alias and foreign number_alias
-					if user_id ~= user then
+			if XML_STRING and (not loaded_from_db) and sip_auth_method then
+				local user_id = api:execute("user_data", from_user .. "@" .. domain_name .." attr id")
+				if user_id ~= user then
+					XML_STRING = nil;
+				elseif METHODS[sip_auth_method] or METHODS._ANY_ then
+					local alias
+					if DIAL_STRING_BASED_ON_USERID then
+						alias = api:execute("user_data", from_user .. "@" .. domain_name .." attr number-alias")
+					end
+					if alias and #alias > 0 then
+						if from_user ~= alias then
+							XML_STRING = nil
+						end
+					elseif from_user ~= user_id then
 						XML_STRING = nil;
 					end
+				end
 			end
 
 		--get the XML string from the cache
