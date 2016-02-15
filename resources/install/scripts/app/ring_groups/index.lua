@@ -417,8 +417,8 @@ local log = require "resources.functions.log".ring_group
 						local inbound_number = session:getVariable("inbound_number") or session:getVariable("sip_to_user") or ""
 						local url = "http://spim.ru/api/callinfo.php?id=%s&ani=%s&num=%s&ext=%s&state="
 						url = string.format(url, uuid, caller_id_number or "", inbound_number or "", destination_number)
-						local str1 = ",execute_on_ring_2=curl " .. url .. "RINGING"
-						local str2 = ",execute_on_answer_2=curl " .. url .. "ANSWER"
+						local str1 = "curl_connect_timeout=2,curl_timeout=2,execute_on_ring_2=curl " .. url .. "RINGING"
+						local str2 = "curl_connect_timeout=2,curl_timeout=2,execute_on_answer_2=curl " .. url .. "ANSWER"
 						row._spim_http = str1 .. str2
 					else
 						row._spim_http = ""
