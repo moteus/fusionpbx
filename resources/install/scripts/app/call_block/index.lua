@@ -94,7 +94,7 @@ This method causes the script to get its manadatory arguments directly from the 
 			require "resources.functions.database_handle";
 			dbh = database_handle('system');
 
-		--log if not connect 
+		--log if not connect
 			if dbh:connected() == false then
 				logger("W", "NOTICE", "db was not connected")
 				assert(false, "db was not connected")
@@ -117,7 +117,7 @@ This method causes the script to get its manadatory arguments directly from the 
 				found_count = rows["call_block_count"];
 			end)
 			-- dbh:affected_rows() doesn't do anything if using core:db so this is the workaround:
-		
+
 		--set the cache
 			if (found_cid_num) and (found_enabled == "true") then	-- caller id exists
 				if (not found_num_type) or (#found_num_type == 0) then
