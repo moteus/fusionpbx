@@ -198,17 +198,6 @@ $text['label-voicemail_description']['uk'] = "Опис";
 $text['label-voicemail_description']['de-at'] = "Beschreibung";
 $text['label-voicemail_description']['he'] = "תאור";
 
-$text['label-view']['en-us'] = "View";
-$text['label-view']['es-cl'] = "Ver";
-$text['label-view']['pt-pt'] = "Ver";
-$text['label-view']['fr-fr'] = "Voir";
-$text['label-view']['pt-br'] = "Visualizar";
-$text['label-view']['pl'] = "Widok";
-$text['label-view']['sv-se'] = "Visa";
-$text['label-view']['uk'] = "Перегляд";
-$text['label-view']['de-at'] = "Ansicht";
-$text['label-view']['he'] = "";
-
 $text['label-tools']['en-us'] = "Tools";
 $text['label-tools']['es-cl'] = "Herramientas";
 $text['label-tools']['pt-pt'] = "Ferramentas";
@@ -274,6 +263,19 @@ $text['label-option']['sv-se'] = "Val";
 $text['label-option']['uk'] = "Параметр";
 $text['label-option']['de-at'] = "Option";
 $text['label-option']['he'] = "אופציה";
+
+$text['label-messages']['en-us'] = "Messages";
+$text['label-messages']['es-cl'] = "Mensajes";
+$text['label-messages']['pt-pt'] = "mensagens";
+$text['label-messages']['fr-fr'] = "Messages";
+$text['label-messages']['pt-br'] = "mensagens";
+$text['label-messages']['pl'] = "Wiadomości";
+$text['label-messages']['uk'] = "повідомлення";
+$text['label-messages']['sv-se'] = "meddelanden";
+$text['label-messages']['ro'] = "mesaje";
+$text['label-messages']['de-at'] = "Nachrichten";
+$text['label-messages']['ar-eg'] = "رسائل";
+$text['label-messages']['he'] = "הודעות";
 
 $text['label-message_status']['en-us'] = "Status";
 $text['label-message_status']['es-cl'] = "Estado";
