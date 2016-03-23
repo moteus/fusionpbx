@@ -93,8 +93,10 @@ else {
 //get the list
 	$sql = "select * from v_user_settings ";
 	$sql .= "where user_uuid = '$user_uuid' ";
-	$sql .= "and (user_setting_category <> 'domain' and user_setting_subcategory <> 'language') ";
-	$sql .= "and (user_setting_category <> 'domain' and user_setting_subcategory <> 'time_zone') ";
+	$sql .= "and not ( ";
+	$sql .= "(user_setting_category = 'domain' and user_setting_subcategory = 'language') ";
+	$sql .= "or (user_setting_category = 'domain' and user_setting_subcategory = 'time_zone') ";
+	$sql .= ") ";
 	if (strlen($order_by) == 0) {
 		$sql .= "order by user_setting_category, user_setting_subcategory, user_setting_order asc ";
 	}
@@ -143,7 +145,7 @@ else {
 					&& permission_exists("user_setting_add")
 					&& count($_SESSION['domains']) > 1) ||
 					permission_exists('user_setting_delete')) {
-						echo "<th style='width: 30px; text-align: center; padding: 0px;'><input type='checkbox' onchange=\"(this.checked) ? check('all','".strtolower($row['user_setting_category'])."') : check('none','".strtolower($row['user_setting_category'])."');\"></th>";
+						echo "<th style='width: 30px; text-align: center; padding: 0px;'><input type='checkbox' id='chk_all_".$row['user_setting_category']."' class='chk_all' onchange=\"(this.checked) ? check('all','".strtolower($row['user_setting_category'])."') : check('none','".strtolower($row['user_setting_category'])."');\"></th>";
 				}
 				echo "<th>".$text['label-subcategory']."</th>";
 				echo "<th>".$text['label-type']."</th>";
@@ -166,7 +168,7 @@ else {
 				(permission_exists("domain_select") && permission_exists("user_setting_add") && count($_SESSION['domains']) > 1) ||
 				permission_exists("user_setting_delete")
 				) {
-				echo "	<td valign='top' class='".$row_style[$c]." tr_link_void' style='text-align: center; padding: 3px 0px 0px 0px;'><input type='checkbox' name='id[]' id='checkbox_".$row['user_setting_uuid']."' value='".$row['user_setting_uuid']."'></td>\n";
+				echo "	<td valign='top' class='".$row_style[$c]." tr_link_void' style='text-align: center; padding: 3px 0px 0px 0px;'><input type='checkbox' name='id[]' id='checkbox_".$row['user_setting_uuid']."' value='".$row['user_setting_uuid']."' onclick=\"if (!this.checked) { document.getElementById('chk_all_".$row['user_setting_category']."').checked = false; }\"></td>\n";
 				$subcat_ids[strtolower($row['user_setting_category'])][] = 'checkbox_'.$row['user_setting_uuid'];
 			}
 			echo "	<td valign='top' class='".$row_style[$c]."'>";
