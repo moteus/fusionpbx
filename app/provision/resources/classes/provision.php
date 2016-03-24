@@ -547,9 +547,9 @@ include "root.php";
 												$contacts[$uuid]['contact_category'] = $row['contact_category'];
 												$contacts[$uuid]['contact_organization'] = $row['contact_organization'];
 												$contacts[$uuid]['contact_name_given'] = $row['contact_name_given'];
-												$contacts[$uuid]['contact_name_family'] = $row['contact_name_given'];
+												$contacts[$uuid]['contact_name_family'] = $row['contact_name_family'];
 												$contacts[$uuid]['phone_number'] = $row['phone_number'];
-												$contacts[$uuid]['phone_extension'] = $row['contact_name_given'];
+												$contacts[$uuid]['phone_extension'] = $row['phone_extension'];
 											}
 									}
 								}
@@ -563,7 +563,7 @@ include "root.php";
 									$sql .= "	select contact_uuid from v_contact_users ";
 									$sql .= "	where user_uuid = '".$user_uuid."' ";
 									$sql .= "	and domain_uuid = '$domain_uuid' ";
-									$sql .= "') ";
+									$sql .= ") ";
 									$sql .= "and c.contact_uuid = p.contact_uuid ";
 									$sql .= "and p.phone_type_voice = '1' ";
 									$sql .= "and c.domain_uuid = '$domain_uuid' ";
@@ -582,9 +582,9 @@ include "root.php";
 												$contacts[$uuid]['contact_category'] = $row['contact_category'];
 												$contacts[$uuid]['contact_organization'] = $row['contact_organization'];
 												$contacts[$uuid]['contact_name_given'] = $row['contact_name_given'];
-												$contacts[$uuid]['contact_name_family'] = $row['contact_name_given'];
+												$contacts[$uuid]['contact_name_family'] = $row['contact_name_family'];
 												$contacts[$uuid]['phone_number'] = $row['phone_number'];
-												$contacts[$uuid]['phone_extension'] = $row['contact_name_given'];
+												$contacts[$uuid]['phone_extension'] = $row['phone_extension'];
 											}
 									}
 								}
