@@ -177,6 +177,10 @@
 						}
 					}
 
+				//make sure the default user groups exist
+					$group = new groups;
+					$group->defaults();
+
 				//get default global group_uuids
 					$sql = "select group_uuid, group_name from v_groups ";
 					$sql .= "where domain_uuid is null ";
@@ -384,13 +388,13 @@
 			} //end function
 
 		//create the menu array
-			public function menu_array($sql, $menu_item_level) {
+			public function menu_array($sql = '', $menu_item_level = 0) {
 
 				//get the database connnection
 					$db = $this->db;
 
 				//database ojbect does not exist return immediately
-					if (!$db) { return; }
+					if (!$db) { return Array(); }
 
 				//if there are no groups then set the public group
 					if (!isset($_SESSION['groups'])) {
@@ -435,6 +439,7 @@
 
 				//save the menu into an array
 					$x = 0;
+					$a = Array();
 					foreach($result as $row) {
 						//add the row to the array
 							$a[$x] = $row;

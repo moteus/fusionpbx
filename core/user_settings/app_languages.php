@@ -1078,31 +1078,6 @@ $text['header-user_dashboard']['ro'] = "Panou control utilizator";
 $text['header-user_dashboard']['fa'] = "";
 $text['header-user_dashboard']['ar-eg'] = "الصفحه الرئيسيه للمستخدم";
 
-$text['header-ring_groups']['en-us'] = "Ring Groups";
-$text['header-ring_groups']['es-cl'] = "Grupo de llamado";
-$text['header-ring_groups']['fr-fr'] = "Groupes de Sonnerie";
-$text['header-ring_groups']['pt-pt'] = "Grupos";
-$text['header-ring_groups']['pt-br'] = "Configurações da Conta";
-$text['header-ring_groups']['pl'] = "Grupy odbiorców rozmów";
-$text['header-ring_groups']['sv-se'] = "Ringgrupper";
-$text['header-ring_groups']['uk'] = "Групи";
-$text['header-ring_groups']['de-at'] = "Rufgruppen";
-$text['header-ring_groups']['he'] = "קבוצות חיוג";
-
-$text['header-call_routing']['en-us'] = "Call Routing";
-$text['header-call_routing']['es-cl'] = "Enrutamiento de Llamadas";
-$text['header-call_routing']['pt-pt'] = "Roteamento de Chamadas";
-$text['header-call_routing']['fr-fr'] = "Routage des Appels";
-$text['header-call_routing']['pt-br'] = "Roteamento de Chamadas";
-$text['header-call_routing']['pl'] = "Trasy połączeń";
-$text['header-call_routing']['he'] = "ניתוב שיחות";
-$text['header-call_routing']['uk'] = "маршрутизація викликів";
-$text['header-call_routing']['sv-se'] = "samtals Rutter";
-$text['header-call_routing']['de-at'] = "Anrufrouten";
-$text['header-call_routing']['ro'] = "Маршрутизация вызовов";
-$text['header-call_routing']['fa'] = "";
-$text['header-call_routing']['ar-eg'] = "توجيه الدعوة";
-
 $text['description-user_language']['en-us'] = "Select the language.";
 $text['description-user_language']['es-cl'] = "Seleccione el idioma.";
 $text['description-user_language']['pt-pt'] = "Selecione o idioma.";
@@ -1281,16 +1256,5 @@ $text['button-voicemail']['sv-se'] = "Röstbrevlåda";
 $text['button-voicemail']['uk'] = "Голосова пошта";
 $text['button-voicemail']['de-at'] = "Mailbox";
 $text['button-voicemail']['he'] = "תא קולי";
-
-$text['button-view_all']['en-us'] = "View All";
-$text['button-view_all']['es-cl'] = "Mostrar Todos";
-$text['button-view_all']['pt-pt'] = "Mostrar Todos";
-$text['button-view_all']['fr-fr'] = "Tout Montrer";
-$text['button-view_all']['pl'] = "Pokaż wszystkie";
-$text['button-view_all']['uk'] = "Показати всі";
-$text['button-view_all']['sv-se'] = "Visa Allt";
-$text['button-view_all']['ro'] = "";
-$text['button-view_all']['de-at'] = "Alle anzeigen";
-$text['button-view_all']['he'] = "הצג הכל";
 
 ?>

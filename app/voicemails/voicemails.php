@@ -38,6 +38,10 @@ else {
 	$language = new text;
 	$text = $language->get();
 
+//retrieve order by
+	$order_by = check_str($_GET["order_by"]);
+	$order = check_str($_GET["order"]);
+
 //set the voicemail id and voicemail uuid arrays
 	foreach ($_SESSION['user']['extension'] as $index => $row) {
 		if (strlen($row['number_alias']) > 0) {
@@ -101,10 +105,9 @@ else {
 	}
 
 //prepare to page the results
-	$rows_per_page = 150;
+	$rows_per_page = ($_SESSION['domain']['paging']['numeric'] != '') ? $_SESSION['domain']['paging']['numeric'] : 50;
 	$param = "";
 	if ($search != '') { $param .= "&search=".$search; }
-	if ($order_by != '') { $param .= "&order_by=".$order_by."&order=".$order; }
 	$page = $_GET['page'];
 	if (strlen($page) == 0) { $page = 0; $_GET['page'] = 0; }
 	list($paging_controls, $rows_per_page, $var3) = paging($num_rows, $param, $rows_per_page);
@@ -112,7 +115,12 @@ else {
 
 //get the list
 	$sql = str_replace('count(*) as num_rows', '*', $sql);
-	$sql .= ($order_by != '') ? "order by ".$order_by." ".$order." " : "order by voicemail_id asc ";
+	if (strlen($order_by) > 0) {
+		$sql .= ($order_by == 'voicemail_id') ? "order by cast(voicemail_id as int) ".$order." " : "order by ".$order_by." ".$order." ";
+	}
+	else {
+		$sql .= "order by cast(voicemail_id as int) asc ";
+	}
 	$sql .= "limit ".$rows_per_page." offset ".$offset." ";
 	$prep_statement = $db->prepare(check_sql($sql));
 	$prep_statement->execute();
@@ -130,41 +138,42 @@ else {
 	echo "		</td>\n";
 	echo "			<td width='30%' align='right' valign='top'>\n";
 	echo "				<form method='get' action=''>\n";
-	echo "				<input type='text' class='txt' style='width: 150px' name='search' value='".$search."'>";
+	echo "				<input type='text' class='txt' style='width: 150px' name='search' id='search' value='".$search."'>";
 	echo "				<input type='submit' class='btn' name='submit' value='".$text['button-search']."'>";
 	echo "				</form>\n";
 	echo "			</td>\n";
 	echo "	</tr>\n";
 	echo "</table>\n";
 
+	echo "<form name='frm' method='post' action='voicemail_delete.php'>\n";
+
+	echo "<table class='tr_hover' width='100%' border='0' cellpadding='0' cellspacing='0'>\n";
+	echo "<tr>\n";
+	if (permission_exists('voicemail_delete') && $num_rows > 0) {
+		echo "<th style='width: 30px; text-align: center; padding: 0px;'><input type='checkbox' id='chk_all' onchange=\"(this.checked) ? check('all') : check('none');\"></th>";
+	}
+	echo th_order_by('voicemail_id', $text['label-voicemail_id'], $order_by, $order);
+	echo th_order_by('voicemail_mail_to', $text['label-voicemail_mail_to'], $order_by, $order);
+	echo th_order_by('voicemail_file', $text['label-voicemail_file_attached'], $order_by, $order);
+	echo th_order_by('voicemail_local_after_email', $text['label-voicemail_local_after_email'], $order_by, $order);
+	echo "<th>".$text['label-tools']."</th>\n";
+	echo th_order_by('voicemail_enabled', $text['label-voicemail_enabled'], $order_by, $order);
+	echo th_order_by('voicemail_description', $text['label-voicemail_description'], $order_by, $order);
+	echo "<td class='list_control_icon'>";
+	if (permission_exists('voicemail_add') || permission_exists('voicemail_edit')) {
+		echo "<a href='voicemail_edit.php' alt='".$text['button-add']."'>".$v_link_label_add."</a>";
+	}
+	if (permission_exists('voicemail_delete') && $num_rows > 0) {
+		echo "<a href='javascript:void(0);' onclick=\"if (confirm('".$text['confirm-delete']."')) { document.forms.frm.submit(); }\" alt='".$text['button-delete']."'>".$v_link_label_delete."</a>";
+	}
+	echo "</td>\n";
+	echo "</tr>\n";
+
 	$c = 0;
 	$row_style["0"] = "row_style0";
 	$row_style["1"] = "row_style1";
 
 	if ($num_rows > 0) {
-
-		echo "<form name='frm' method='post' action='voicemail_delete.php'>\n";
-		echo "<table class='tr_hover' width='100%' border='0' cellpadding='0' cellspacing='0'>\n";
-		echo "<tr>\n";
-		if (permission_exists('voicemail_delete') && $num_rows > 0) {
-			echo "<th style='width: 30px; text-align: center; padding: 0px;'><input type='checkbox' id='chk_all' onchange=\"(this.checked) ? check('all') : check('none');\"></th>";
-		}
-		echo th_order_by('voicemail_id', $text['label-voicemail_id'], $order_by, $order);
-		echo th_order_by('voicemail_mail_to', $text['label-voicemail_mail_to'], $order_by, $order);
-		echo th_order_by('voicemail_file', $text['label-voicemail_file_attached'], $order_by, $order);
-		echo th_order_by('voicemail_local_after_email', $text['label-voicemail_local_after_email'], $order_by, $order);
-		echo "<th>".$text['label-tools']."</th>\n";
-		echo th_order_by('voicemail_enabled', $text['label-voicemail_enabled'], $order_by, $order);
-		echo th_order_by('voicemail_description', $text['label-voicemail_description'], $order_by, $order);
-		echo "<td class='list_control_icons' style='width: 25px;'>";
-		if (permission_exists('voicemail_add') || permission_exists('voicemail_edit')) {
-			echo "<a href='voicemail_edit.php' alt='".$text['button-add']."'>".$v_link_label_add."</a>";
-		}
-		if (permission_exists('voicemail_delete')) {
-			echo "<a href='javascript:void(0);' onclick=\"if (confirm('".$text['confirm-delete']."')) { document.forms.frm.submit(); }\" alt='".$text['button-delete']."'>".$v_link_label_delete."</a>";
-		}
-		echo "</td>\n";
-		echo "</tr>\n";
 
 		foreach($voicemails as $row) {
 			$tr_link = (permission_exists('voicemail_edit')) ? "href='voicemail_edit.php?id=".$row['voicemail_uuid']."'" : null;
@@ -207,46 +216,53 @@ else {
 				echo "	</td>\n";
 			}
 			echo "</tr>\n";
-			if ($c==0) { $c=1; } else { $c=0; }
-		} //end foreach
-		unset($sql, $voicemails, $row_count);
+			$c = ($c) ? 0 : 1;
+		}
+		unset($voicemails, $row);
 
+	}
+
+	if ($num_rows > 0) {
 		echo "<tr>\n";
 		echo "	<td colspan='20' class='list_control_icons'>\n";
 		if (permission_exists('voicemail_add')) {
 			echo "<a href='voicemail_edit.php' alt='".$text['button-add']."'>".$v_link_label_add."</a>";
 		}
-		if (permission_exists('voicemail_delete') && $num_rows > 0) {
+		if (permission_exists('voicemail_delete')) {
 			echo "<a href='javascript:void(0);' onclick=\"if (confirm('".$text['confirm-delete']."')) { document.forms.frm.submit(); }\" alt='".$text['button-delete']."'>".$v_link_label_delete."</a>";
 		}
 		echo "	</td>\n";
 		echo "</tr>\n";
-
-		echo "</table>";
-		echo "</form>";
-
-		if (strlen($paging_controls) > 0) {
-			echo "<center>".$paging_controls."</center>\n";
-		}
-
-		// check or uncheck all checkboxes
-		if (sizeof($vm_ids) > 0) {
-			echo "<script>\n";
-			echo "	function check(what) {\n";
-			foreach ($vm_ids as $vm_id) {
-				echo "document.getElementById('".$vm_id."').checked = (what == 'all') ? true : false;\n";
-			}
-			echo "	}\n";
-			echo "</script>\n";
-		}
-
-	}
-	else {
-		echo "<br />";
-		echo $text['message-mailbox_not_found'];
 	}
 
-	echo "<br /><br />";
+	echo "</table>";
+	echo "</form>";
+
+	if (strlen($paging_controls) > 0) {
+		echo "<center>".$paging_controls."</center>\n";
+	}
+
+	echo "<br /><br />".(($num_rows == 0) ? "<br /><br />" : null);
+
+	// check or uncheck all checkboxes
+	if (sizeof($vm_ids) > 0) {
+		echo "<script>\n";
+		echo "	function check(what) {\n";
+		echo "		document.getElementById('chk_all').checked = (what == 'all') ? true : false;\n";
+		foreach ($vm_ids as $vm_id) {
+			echo "		document.getElementById('".$vm_id."').checked = (what == 'all') ? true : false;\n";
+		}
+		echo "	}\n";
+		echo "</script>\n";
+	}
+
+	if ($num_rows > 0) {
+		// check all checkboxes
+		key_press('ctrl+a', 'down', 'document', null, null, "check('all');", true);
+
+		// delete checked
+		key_press('delete', 'up', 'document', array('#search'), $text['confirm-delete'], 'document.forms.frm.submit();', true);
+	}
 
 //include the footer
 	require_once "resources/footer.php";
