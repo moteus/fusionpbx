@@ -44,7 +44,7 @@ else {
 	require_once "resources/paging.php";
 
 //xml cdr include
-	$rows_per_page = 100;
+	$rows_per_page = ($_SESSION['domain']['paging']['numeric'] != '') ? $_SESSION['domain']['paging']['numeric'] : 50;
 	require_once "xml_cdr_inc.php";
 
 //javascript function: send_cmd
@@ -234,8 +234,12 @@ else {
 				echo "			".$text['label-start_range']."\n";
 				echo "		</td>\n";
 				echo "		<td class='vtable' align='left' style='white-space: nowrap;'>\n";
-				echo "			<input type='text' class='formfld' style='min-width: 115px; width: 115px;' name='start_stamp_begin' data-calendar=\"{format: '%Y-%m-%d %H:%M', listYears: true, hideOnPick: false, fxName: null, showButtons: true}\" placeholder='".$text['label-from']."' value='$start_stamp_begin'>\n";
-				echo "			<input type='text' class='formfld' style='min-width: 115px; width: 115px;' name='start_stamp_end' data-calendar=\"{format: '%Y-%m-%d %H:%M', listYears: true, hideOnPick: false, fxName: null, showButtons: true}\" placeholder='".$text['label-to']."' value='$start_stamp_end'>\n";
+				echo "			<div class='row'>\n";
+				echo "				<div class='col-sm-12'>\n";
+				echo "					<input type='text' class='formfld datetimepicker' style='min-width: 115px; width: 115px;' name='start_stamp_begin' placeholder='".$text['label-from']."' value='$start_stamp_begin'>\n";
+				echo "					<input type='text' class='formfld datetimepicker' style='min-width: 115px; width: 115px;' name='start_stamp_end' placeholder='".$text['label-to']."' value='$start_stamp_end'>\n";
+				echo "				</div>\n";
+				echo "			</div>\n";
 				echo "		</td>\n";
 				echo "	</tr>\n";
 				echo "	<tr>\n";
@@ -416,11 +420,7 @@ else {
 			$tmp_month = date("M", strtotime($row['start_stamp']));
 			$tmp_day = date("d", strtotime($row['start_stamp']));
 
-			if (defined('TIME_24HR') && TIME_24HR == 1) {
-				$tmp_start_epoch = date("j M Y H:i:s", $row['start_epoch']);
-			} else {
-				$tmp_start_epoch = date("j M Y h:i:sa", $row['start_epoch']);
-			}
+			$tmp_start_epoch = ($_SESSION['domain']['time_format']['text'] == '12h') ? date("j M Y g:i:sa", $row['start_epoch']) : date("j M Y H:i:s", $row['start_epoch']);
 
 			$hangup_cause = $row['hangup_cause'];
 			$hangup_cause = str_replace("_", " ", $hangup_cause);
@@ -461,7 +461,7 @@ else {
 
 			//recording playback
 				if (permission_exists('recording_play') && $recording_file_path != '') {
-					echo "<tr id='recording_progress_bar_".$row['uuid']."' style='display: none;'><td colspan='".((if_group("admin") || if_group("superadmin") || if_group("cdr")) ? ($col_count - 1) : $col_count)."'><span class='playback_progress_bar' id='recording_progress_".$row['uuid']."'></span></td></tr>\n";
+					echo "<tr id='recording_progress_bar_".$row['uuid']."' style='display: none;'><td class='".$row_style[$c]."' style='border: none; padding: 0;' colspan='".((if_group("admin") || if_group("superadmin") || if_group("cdr")) ? ($col_count - 1) : $col_count)."'><span class='playback_progress_bar' id='recording_progress_".$row['uuid']."'></span></td></tr>\n";
 				}
 
 				if (if_group("admin") || if_group("superadmin") || if_group("cdr")) {
@@ -529,7 +529,7 @@ else {
 			//recording
 				if (permission_exists('recording_play') || permission_exists('recording_download')) {
 					if ($recording_file_path != '') {
-						echo "	<td valign='top' align='center' class='".$row_style["2"]." ".((!$c) ? "row_style_hor_mir_grad" : null)." tr_link_void' nowrap='nowrap'>";
+						echo "	<td valign='top' align='center' class='".$row_style[$c]." row_style_slim tr_link_void' nowrap='nowrap'>";
 						if (permission_exists('recording_play')) {
 							echo 	"<audio id='recording_audio_".$row['uuid']."' style='display: none;' preload='none' ontimeupdate=\"update_progress('".$row['uuid']."')\" onended=\"recording_reset('".$row['uuid']."');\" src=\"".PROJECT_PATH."/app/recordings/recordings.php?a=download&type=rec&filename=".base64_encode($recording_file_path)."\" type='".$recording_type."'></audio>";
 							echo 	"<span id='recording_button_".$row['uuid']."' onclick=\"recording_play('".$row['uuid']."')\" title='".$text['label-play']." / ".$text['label-pause']."'>".$v_link_label_play."</span>";
