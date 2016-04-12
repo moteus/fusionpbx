@@ -229,19 +229,19 @@ else {
 	echo "<form method='post' name='frm' id='frm' action='exec.php' style='margin: 0;' onsubmit='return submit_check();'>\n";
 	echo "<input type='hidden' name='id' value='".$_REQUEST['id']."'>\n"; //sql db id
 	echo "<textarea name='cmd' id='cmd' style='display: none;'></textarea>";
-	echo "<table cellpadding='0' cellspacing='0' border='0' width='100%'>\n";
+	echo "<table cellpadding='0' cellspacing='0' border='0' style='width: 100%;'>\n";
 	echo "	<tr>";
-	echo "		<td width='210' valign='top' nowrap>";
+	echo "		<td style='width: 210px;' valign='top' nowrap>";
 
 	echo "			<table cellpadding='0' cellspacing='0' border='0' width='100%' height='100%'>";
 	if (permission_exists('exec_switch') || permission_exists('exec_php') || permission_exists('exec_command') || permission_exists('exec_sql')) {
 		echo "			<tr>";
 		echo "				<td valign='top'>";
-		echo "					<table cellpadding='0' cellspacing='3' border='0'>\n";
-		if (permission_exists('exec_switch')) { echo "<tr><td valign='middle'><input type='radio' name='handler' id='handler_switch' value='switch' ".(($handler == 'switch') ? 'checked' : null)." onclick=\"set_handler('switch');\"></td><td valign='bottom' style='padding-top: 3px;'><label for='handler_switch'> ".$text['label-switch']."</label></td></tr>\n"; }
-		if (permission_exists('exec_php')) { echo "<tr><td valign='middle'><input type='radio' name='handler' id='handler_php' value='php' ".(($handler == 'php') ? 'checked' : null)." onclick=\"set_handler('php');\"></td><td valign='bottom' style='padding-top: 3px;'><label for='handler_php'> ".$text['label-php']."</label></td></tr>\n"; }
-		if (permission_exists('exec_command')) { echo "<tr><td valign='middle'><input type='radio' name='handler' id='handler_shell' value='shell' ".(($handler == 'shell') ? 'checked' : null)." onclick=\"set_handler('shell');\"></td><td valign='bottom' style='padding-top: 3px;'><label for='handler_shell'> ".$text['label-shell']."</label></td></tr>\n"; }
-		if (permission_exists('exec_sql')) { echo "<tr><td valign='middle'><input type='radio' name='handler' id='handler_sql' value='sql' ".(($handler == 'sql') ? 'checked' : null)." onclick=\"set_handler('sql');\"></td><td valign='bottom' style='padding-top: 3px;'><label for='handler_sql'> ".$text['label-sql']."</label></td></tr>\n"; }
+		echo "					<table cellpadding='0' cellspacing='0' border='0'>\n";
+		if (permission_exists('exec_switch')) { echo "<tr><td valign='middle'><input type='radio' name='handler' id='handler_switch' value='switch' ".(($handler == 'switch') ? 'checked' : null)." onclick=\"set_handler('switch');\"></td><td valign='middle' style='padding: 3px 0 0 3px;'><label for='handler_switch' style='padding-top: 3px;'> ".$text['label-switch']."</label></td></tr>\n"; }
+		if (permission_exists('exec_php')) { echo "<tr><td valign='middle'><input type='radio' name='handler' id='handler_php' value='php' ".(($handler == 'php') ? 'checked' : null)." onclick=\"set_handler('php');\"></td><td valign='middle' style='padding: 4px 0 0 3px;'><label for='handler_php'> ".$text['label-php']."</label></td></tr>\n"; }
+		if (permission_exists('exec_command')) { echo "<tr><td valign='middle'><input type='radio' name='handler' id='handler_shell' value='shell' ".(($handler == 'shell') ? 'checked' : null)." onclick=\"set_handler('shell');\"></td><td valign='middle' style='padding: 4px 0 0 3px;'><label for='handler_shell'> ".$text['label-shell']."</label></td></tr>\n"; }
+		if (permission_exists('exec_sql')) { echo "<tr><td valign='middle'><input type='radio' name='handler' id='handler_sql' value='sql' ".(($handler == 'sql') ? 'checked' : null)." onclick=\"set_handler('sql');\"></td><td valign='middle' style='padding: 4px 0 0 3px;'><label for='handler_sql'> ".$text['label-sql']."</label></td></tr>\n"; }
 		echo "					</table>\n";
 		echo "					<br />";
 		//sql controls
@@ -275,7 +275,7 @@ else {
 		}
 		echo "					<input type='button' class='btn' style='margin-top: 5px;' title=\"".$text['button-execute']." [Ctrl+Enter]\" value=\"    ".$text['button-execute']."    \" onclick=\"$('form#frm').submit();\">";
 		echo "					&nbsp;&nbsp;&nbsp;&nbsp;<a href='javascript:void(0)' onclick='reset_editor();'>".$text['label-reset']."</a>\n";
-		echo "					<br /><br /><br />";
+		echo "					<br /><br />";
 		echo "				</td>";
 		echo "			</tr>";
 	}
@@ -289,7 +289,7 @@ else {
 	echo "			</table>";
 
 	echo "		</td>";
-	echo "		<td width='100%' valign='top' style='height: 450px;'>"
+	echo "		<td valign='top' style='height: 450px;'>"
 	?>
 	<table cellpadding='0' cellspacing='0' border='0' style='width: 100%;'>
 		<tr>
@@ -298,7 +298,7 @@ else {
 			<td valign='middle' style='padding-left: 6px;'><img src='resources/images/icon_numbering.png' title='Toggle Line Numbers' class='control' onclick="toggle_option('numbering');"></td>
 			<td valign='middle' style='padding-left: 6px;'><img src='resources/images/icon_invisibles.png' title='Toggle Invisibles' class='control' onclick="toggle_option('invisibles');"></td>
 			<td valign='middle' style='padding-left: 6px;'><img src='resources/images/icon_indenting.png' title='Toggle Indent Guides' class='control' onclick="toggle_option('indenting');"></td>
-			<td valign='middle' style='padding-left: 6px;'><img src='resources/images/icon_replace.png' title='Show Find/Replace [Ctrl+H]' class='control' onclick="editor.execCommand('replace');"></td>
+			<!--<td valign='middle' style='padding-left: 6px;'><img src='resources/images/icon_replace.png' title='Show Find/Replace [Ctrl+H]' class='control' onclick="editor.execCommand('replace');"></td>-->
 			<td valign='middle' style='padding-left: 6px;'><img src='resources/images/icon_goto.png' title='Show Go To Line' class='control' onclick="editor.execCommand('gotoline');"></td>
 			<td valign='middle' style='padding-left: 10px;'>
 				<select id='mode' style='height: 23px;' onchange="editor.getSession().setMode((this.options[this.selectedIndex].value == 'php') ? {path:'ace/mode/php', inline:true} : 'ace/mode/' + this.options[this.selectedIndex].value); focus_editor();">
@@ -425,20 +425,13 @@ else {
 			document.getElementById('editor').style.fontSize='<?php echo $setting_size;?>';
 			focus_editor();
 
-		//keyboard shortcuts
-			$(window).keypress(function(event) {
-				//execute command [Ctrl+Enter]
-				if (((event.which == 13 || event.which == 10) && event.ctrlKey) || (event.which == 19)) {
-					$('form#frm').submit();
-					return false;
-				}
-				//otherwise, default action
-				else {
-					return true;
-				}
-			});
+		//keyboard shortcut to execute command
+			<?php key_press('ctrl+enter', 'down', 'window', null, null, "$('form#frm').submit();", false); ?>
+
 		//remove certain keyboard shortcuts
-			editor.commands.bindKey("Ctrl-T", null); //new browser tab
+			editor.commands.bindKey("Ctrl-T", null); //disable transpose letters - prefer new browser tab
+			editor.commands.bindKey("Ctrl-F", null); //disable find - control broken with bootstrap
+			editor.commands.bindKey("Ctrl-H", null); //disable replace - control broken with bootstrap
 	</script>
 
 <?php
