@@ -322,7 +322,7 @@ if ($domains_processed == 1) {
 		$array[$x]['default_setting_category'] = 'theme';
 		$array[$x]['default_setting_subcategory'] = 'menu_sub_background_color';
 		$array[$x]['default_setting_name'] = 'text';
-		$array[$x]['default_setting_value'] = '';
+		$array[$x]['default_setting_value'] = '#000000';
 		$array[$x]['default_setting_enabled'] = 'false';
 		$array[$x]['default_setting_description'] = 'Set the background color (and opacity) of the sub menus.';
 		$x++;
@@ -591,7 +591,7 @@ if ($domains_processed == 1) {
 		$array[$x]['default_setting_category'] = 'theme';
 		$array[$x]['default_setting_subcategory'] = 'dashboard_heading_text_font';
 		$array[$x]['default_setting_name'] = 'text';
-		$array[$x]['default_setting_value'] = 'Calibri, Candara, Segoe, "Segoe UI", Optima, Arial, sans-serif';
+		$array[$x]['default_setting_value'] = "Calibri, Candara, Segoe, 'Segoe UI', Optima, Arial, sans-serif";
 		$array[$x]['default_setting_enabled'] = 'false';
 		$array[$x]['default_setting_description'] = 'Set the font of the Dashboard block heading text.';
 		$x++;
@@ -647,7 +647,7 @@ if ($domains_processed == 1) {
 		$array[$x]['default_setting_category'] = 'theme';
 		$array[$x]['default_setting_subcategory'] = 'dashboard_number_text_font';
 		$array[$x]['default_setting_name'] = 'text';
-		$array[$x]['default_setting_value'] = 'Calibri, Candara, Segoe, "Segoe UI", Optima, Arial, sans-serif';
+		$array[$x]['default_setting_value'] = "Calibri, Candara, Segoe, 'Segoe UI', Optima, Arial, sans-serif";
 		$array[$x]['default_setting_enabled'] = 'false';
 		$array[$x]['default_setting_description'] = 'Set the font of the Dashboard block number.';
 		$x++;
@@ -682,7 +682,7 @@ if ($domains_processed == 1) {
 		$array[$x]['default_setting_category'] = 'theme';
 		$array[$x]['default_setting_subcategory'] = 'dashboard_number_title_text_font';
 		$array[$x]['default_setting_name'] = 'text';
-		$array[$x]['default_setting_value'] = 'Calibri, Candara, Segoe, "Segoe UI", Optima, Arial, sans-serif';
+		$array[$x]['default_setting_value'] = "Calibri, Candara, Segoe, 'Segoe UI', Optima, Arial, sans-serif";
 		$array[$x]['default_setting_enabled'] = 'false';
 		$array[$x]['default_setting_description'] = 'Set the font of the Dashboard block number title.';
 		$x++;
@@ -1079,7 +1079,7 @@ if ($domains_processed == 1) {
 		$array[$x]['default_setting_category'] = 'theme';
 		$array[$x]['default_setting_subcategory'] = 'button_text_font';
 		$array[$x]['default_setting_name'] = 'text';
-		$array[$x]['default_setting_value'] = 'Candara, Calibri, Segoe, "Segoe UI", Optima, Arial, sans-serif';
+		$array[$x]['default_setting_value'] = "Candara, Calibri, Segoe, 'Segoe UI', Optima, Arial, sans-serif";
 		$array[$x]['default_setting_enabled'] = 'false';
 		$array[$x]['default_setting_description'] = 'Set the font of button text.';
 		$x++;
@@ -1316,6 +1316,35 @@ if ($domains_processed == 1) {
 		$array[$x]['default_setting_enabled'] = 'false';
 		$array[$x]['default_setting_description'] = 'Set the color (and opacity) of input placeholder text on the login box.';
 		$x++;
+		$array[$x]['default_setting_category'] = 'theme';
+		$array[$x]['default_setting_subcategory'] = 'font_loader';
+		$array[$x]['default_setting_name'] = 'text';
+		$array[$x]['default_setting_value'] = 'true';
+		$array[$x]['default_setting_enabled'] = 'false';
+		$array[$x]['default_setting_description'] = 'Enables the dynamic loading of web fonts (requires an Internet connection).';
+		$x++;
+		$array[$x]['default_setting_category'] = 'theme';
+		$array[$x]['default_setting_subcategory'] = 'font_loader_version';
+		$array[$x]['default_setting_name'] = 'text';
+		$array[$x]['default_setting_value'] = '1.6.16';
+		$array[$x]['default_setting_enabled'] = 'false';
+		$array[$x]['default_setting_description'] = "Set the web font loader version to use - specific (e.g. '1.6.16') or latest in branch (e.g. '1').";
+		$x++;
+		$array[$x]['default_setting_category'] = 'theme';
+		$array[$x]['default_setting_subcategory'] = 'font_retrieval';
+		$array[$x]['default_setting_name'] = 'text';
+		$array[$x]['default_setting_value'] = 'asynchronous';
+		$array[$x]['default_setting_enabled'] = 'false';
+		$array[$x]['default_setting_description'] = 'Set the retrieval method for the web font loader (default: synchronous).';
+		$x++;
+		$array[$x]['default_setting_category'] = 'theme';
+		$array[$x]['default_setting_subcategory'] = 'font_source_key';
+		$array[$x]['default_setting_name'] = 'text';
+		$array[$x]['default_setting_value'] = '';
+		$array[$x]['default_setting_enabled'] = 'false';
+		$array[$x]['default_setting_description'] = "API key that allows access to the available fonts list.";
+		$x++;
+
 
 	//get an array of the default settings
 		$sql = "select * from v_default_settings ";
@@ -1346,33 +1375,35 @@ if ($domains_processed == 1) {
 		$missing_count = $i;
 
 	//add the missing default settings
-		$sql = "insert into v_default_settings (";
-		$sql .= "default_setting_uuid, ";
-		$sql .= "default_setting_category, ";
-		$sql .= "default_setting_subcategory, ";
-		$sql .= "default_setting_name, ";
-		$sql .= "default_setting_value, ";
-		$sql .= "default_setting_enabled, ";
-		$sql .= "default_setting_description ";
-		$sql .= ") values \n";
-		$i = 1;
-		foreach ($missing as $row) {
-			$sql .= "(";
-			$sql .= "'".uuid()."', ";
-			$sql .= "'".check_str($row['default_setting_category'])."', ";
-			$sql .= "'".check_str($row['default_setting_subcategory'])."', ";
-			$sql .= "'".check_str($row['default_setting_name'])."', ";
-			$sql .= "'".check_str($row['default_setting_value'])."', ";
-			$sql .= "'".check_str($row['default_setting_enabled'])."', ";
-			$sql .= "'".check_str($row['default_setting_description'])."' ";
-			$sql .= ")";
-			if ($missing_count != $i) { 
-				$sql .= ",\n";
+		if (count($missing) > 0) {
+			$sql = "insert into v_default_settings (";
+			$sql .= "default_setting_uuid, ";
+			$sql .= "default_setting_category, ";
+			$sql .= "default_setting_subcategory, ";
+			$sql .= "default_setting_name, ";
+			$sql .= "default_setting_value, ";
+			$sql .= "default_setting_enabled, ";
+			$sql .= "default_setting_description ";
+			$sql .= ") values \n";
+			$i = 1;
+			foreach ($missing as $row) {
+				$sql .= "(";
+				$sql .= "'".uuid()."', ";
+				$sql .= "'".check_str($row['default_setting_category'])."', ";
+				$sql .= "'".check_str($row['default_setting_subcategory'])."', ";
+				$sql .= "'".check_str($row['default_setting_name'])."', ";
+				$sql .= "'".check_str($row['default_setting_value'])."', ";
+				$sql .= "'".check_str($row['default_setting_enabled'])."', ";
+				$sql .= "'".check_str($row['default_setting_description'])."' ";
+				$sql .= ")";
+				if ($missing_count != $i) {
+					$sql .= ",\n";
+				}
+				$i++;
 			}
-			$i++;
+			$db->exec(check_sql($sql));
+			unset($missing);
 		}
-		$db->exec(check_sql($sql));
-		unset($missing);
 
 	//unset the array variable
 		unset($array);

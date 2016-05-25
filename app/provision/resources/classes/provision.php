@@ -164,6 +164,106 @@ include "root.php";
 			}
 		}
 
+		private function contact_append(&$contacts, &$line, $domain_uuid, $user_uuid, $is_group){
+			$sql = "select c.contact_uuid, c.contact_organization, c.contact_name_given, c.contact_name_family, ";
+			$sql .= "c.contact_type, c.contact_category, p.phone_label,";
+			$sql .= "p.phone_number, p.phone_extension, p.phone_primary ";
+			$sql .= "from v_contacts as c, v_contact_phones as p ";
+			$sql .= "where c.contact_uuid = p.contact_uuid ";
+			$sql .= "and p.phone_type_voice = '1' ";
+			$sql .= "and c.domain_uuid = '$domain_uuid' ";
+			if ($is_group) {
+				$sql .= "and c.contact_uuid in ( ";
+				$sql .= "	select contact_uuid from v_contact_groups ";
+				$sql .= "	where group_uuid in ( ";
+				$sql .= "		select group_uuid from v_group_users ";
+				$sql .= "		where user_uuid = '$user_uuid' ";
+				$sql .= "		and domain_uuid = '$domain_uuid' ";
+				$sql .= "	)) ";
+			}
+			else {
+				$sql .= "and c.contact_uuid in ( ";
+				$sql .= "	select contact_uuid from v_contact_users ";
+				$sql .= "	where user_uuid = '$user_uuid' ";
+				$sql .= "	and domain_uuid = '$domain_uuid' ";
+				$sql .= ") ";
+			}
+
+			$prep_statement = $this->db->prepare(check_sql($sql));
+			$prep_statement->execute();
+			$user_contacts = $prep_statement->fetchAll(PDO::FETCH_NAMED);
+			unset($prep_statement, $sql);
+
+			$temp_contacts = array();
+			foreach ($user_contacts as &$row) {
+				$uuid = $row['contact_uuid'];
+				$phone_label = strtolower($row['phone_label']);
+				$contact_category = strtolower($row['contact_category']);
+
+				if(isset($contacts[$uuid])){
+					continue;
+				}
+
+				if(!isset($temp_contacts[$uuid])){
+					$contact = array();
+					$temp_contacts[$uuid] = &$contact;
+					$contact['category']             = $is_group ? 'groups' : 'users';
+					$contact['contact_uuid']         = $row['contact_uuid'];
+					$contact['contact_type']         = $row['contact_type'];
+					$contact['contact_category']     = $row['contact_category'];
+					$contact['contact_organization'] = $row['contact_organization'];
+					$contact['contact_name_given']   = $row['contact_name_given'];
+					$contact['contact_name_family']  = $row['contact_name_family'];
+					$contact['numbers']              = array();
+				}
+
+				$contact = &$temp_contacts[$uuid];
+				$numbers = &$contact['numbers'];
+
+				if (($row['phone_primary'] == '1') || (!isset($contact['phone_number']))) {
+					$contact['phone_label']          = $phone_label;
+					$contact['phone_number']         = $row['phone_number'];
+					$contact['phone_extension']      = $row['phone_extension'];
+				}
+
+				$numbers[] = array(
+					line_number          => $line['line_number'],
+					phone_label          => $phone_label,
+					phone_number         => $row['phone_number'],
+					phone_extension      => $row['phone_extension'],
+					phone_primary        => $row['phone_primary'],
+				);
+
+				$contact['phone_number_' . $phone_label] = $row['phone_number'];
+				unset($contact, $numbers, $uuid, $phone_label);
+			}
+
+			foreach($temp_contacts as $contact_uuid=>&$contact){
+				$contacts[$contact_uuid] = $contact;
+			}
+
+			unset($temp_contacts);
+		}
+
+		private function user_uuid_for_line(&$line, $domain_uuid){
+			$sql = "select user_uuid from v_extension_users ";
+			$sql .= "where extension_uuid in ( ";
+			$sql .= "	select extension_uuid from v_extensions ";
+			$sql .= "	where (extension = '".$line["user_id"]."' or number_alias = '".$line["user_id"]."') ";
+			$sql .= "	and domain_uuid = '$domain_uuid' ";
+			$sql .= ") ";
+			$sql .= "and domain_uuid = '$domain_uuid' ";
+			
+			$prep_statement = $this->db->prepare(check_sql($sql));
+			$prep_statement->execute();
+			$extension_users = $prep_statement->fetchAll(PDO::FETCH_NAMED);
+			unset($prep_statement, $sql);
+			foreach ($extension_users as &$row) {
+				return $row["user_uuid"];
+			}
+			return false;
+		}
+
 		public function render() {
 
 			//debug
@@ -418,25 +518,6 @@ include "root.php";
 
 			//replace the variables in the template in the future loop through all the line numbers to do a replace for each possible line number
 
-				//get the time zone
-					$time_zone_name = $_SESSION['domain']['time_zone']['name'];
-					if (strlen($time_zone_name) > 0) {
-						$time_zone_offset_raw = get_time_zone_offset($time_zone_name)/3600;
-						$time_zone_offset_hours = floor($time_zone_offset_raw);
-						$time_zone_offset_minutes = ($time_zone_offset_raw - $time_zone_offset_hours) * 60;
-						$time_zone_offset_minutes = number_pad($time_zone_offset_minutes, 2);
-						if ($time_zone_offset_raw > 0) {
-							$time_zone_offset_hours = number_pad($time_zone_offset_hours, 2);
-							$time_zone_offset_hours = "+".$time_zone_offset_hours;
-						}
-						else {
-							$time_zone_offset_hours = str_replace("-", "", $time_zone_offset_hours);
-							$time_zone_offset_hours = "-".number_pad($time_zone_offset_hours, 2);
-						}
-						$time_zone_offset = $time_zone_offset_hours.":".$time_zone_offset_minutes;
-						$view->assign("time_zone_offset" , $time_zone_offset);
-					}
-
 				//create a mac address with back slashes for backwards compatability
 					$mac_dash = substr($mac, 0,2).'-'.substr($mac, 2,2).'-'.substr($mac, 4,2).'-'.substr($mac, 6,2).'-'.substr($mac, 8,2).'-'.substr($mac, 10,2);
 
@@ -499,99 +580,19 @@ include "root.php";
 				//get the list of contact directly assigned to the user
 					//get the user_uuid to find the contacts assigned to the user and the groups the user is a member of.
 					if (strlen($device_uuid) > 0 and strlen($domain_uuid) > 0) {
-						foreach ($device_lines as &$line) {
-							//get the user_uuid assigned to the extension_uuid
-								if ($_SESSION['provision']['contact_users']['boolean'] == "true" || $_SESSION['provision']['contact_groups']['boolean'] == "true") {
-									$sql = "select user_uuid from v_extension_users ";
-									$sql .= "where extension_uuid in ( ";
-									$sql .= "	select extension_uuid from v_extensions ";
-									$sql .= "	where (extension = '".$line["user_id"]."' or number_alias = '".$line["user_id"]."') ";
-									$sql .= "	and domain_uuid = '$domain_uuid' ";
-									$sql .= ") ";
-									$sql .= "and domain_uuid = '$domain_uuid' ";
-									$prep_statement = $this->db->prepare(check_sql($sql));
-									$prep_statement->execute();
-									$extension_users = $prep_statement->fetchAll(PDO::FETCH_NAMED);
-									unset($prep_statement);
-									foreach ($extension_users as &$row) {
-										$user_uuid = $row["user_uuid"];
-									}
-								}
+						if ($_SESSION['provision']['contact_users']['boolean'] == "true" || $_SESSION['provision']['contact_groups']['boolean'] == "true") {
+							foreach ($device_lines as &$line) {
+								$user_uuid = $this->user_uuid_for_line($line, $domain_uuid);
+								if(!$user_uuid) continue;
 
-							//get the contacts assigned to the groups and add to the contacts array
-								if ($_SESSION['provision']['contact_groups']['boolean'] == "true") {
-									$sql = "select c.contact_uuid, c.contact_organization, c.contact_name_given, c.contact_name_family, ";
-									$sql .= "c.contact_type, c.contact_category, p.phone_label,";
-									$sql .= "p.phone_number, p.phone_extension ";
-									$sql .= "from v_contacts as c, v_contact_phones as p ";
-									$sql .= "where c.contact_uuid in ( ";
-									$sql .= "	select contact_uuid from v_contact_groups ";
-									$sql .= "	where group_uuid in (' ";
-									$sql .= "		select group_uuid from v_group_users ";
-									$sql .= "		where user_uuid = '".$user_uuid."' ";
-									$sql .= "		and domain_uuid = '$domain_uuid' ";
-									$sql .= "	) ";
-									$sql .= "and domain_uuid = '$domain_uuid' ";
-									$sql .= ") ";
-									//echo $sql."\n";
-									$prep_statement = $this->db->prepare(check_sql($sql));
-									$prep_statement->execute();
-									$contact_groups = $prep_statement->fetchAll(PDO::FETCH_NAMED);
-									unset($prep_statement);
-									foreach ($contact_groups as $row) {
-										//get the contact_uuid
-											$uuid = $row['contact_uuid'];
-										//add the contacts to the contact array
-											if (!$this->contact_exists($contacts, $uuid)) {
-												$contacts[$uuid]['category'] = 'groups';
-												$contacts[$uuid]['contact_uuid'] = $row['contact_uuid'];
-												$contacts[$uuid]['contact_type'] = $row['contact_type'];
-												$contacts[$uuid]['contact_category'] = $row['contact_category'];
-												$contacts[$uuid]['contact_organization'] = $row['contact_organization'];
-												$contacts[$uuid]['contact_name_given'] = $row['contact_name_given'];
-												$contacts[$uuid]['contact_name_family'] = $row['contact_name_family'];
-												$contacts[$uuid]['phone_label'] = $row['phone_label'];
-												$contacts[$uuid]['phone_number'] = $row['phone_number'];
-												$contacts[$uuid]['phone_extension'] = $row['phone_extension'];
-											}
+								//get the contacts assigned to the groups and add to the contacts array
+									if ($_SESSION['provision']['contact_groups']['boolean'] == "true") {
+										$this->contact_append($contacts, $line, $domain_uuid, $user_uuid, true);
 									}
-								}
 
-							//get the contacts assigned to the user and add to the contacts array
-								if ($_SESSION['provision']['contact_users']['boolean'] == "true") {
-									$sql = "select c.contact_uuid, c.contact_organization, c.contact_name_given, c.contact_name_family, ";
-									$sql .= "c.contact_type, c.contact_category, p.phone_label,";
-									$sql .= "p.phone_number, p.phone_extension ";
-									$sql .= "from v_contacts as c, v_contact_phones as p ";
-									$sql .= "where c.contact_uuid in ( ";
-									$sql .= "	select contact_uuid from v_contact_users ";
-									$sql .= "	where user_uuid = '".$user_uuid."' ";
-									$sql .= "	and domain_uuid = '$domain_uuid' ";
-									$sql .= ") ";
-									$sql .= "and c.contact_uuid = p.contact_uuid ";
-									$sql .= "and p.phone_type_voice = '1' ";
-									$sql .= "and c.domain_uuid = '$domain_uuid' ";
-									//echo $sql."\n";
-									$prep_statement = $this->db->prepare(check_sql($sql));
-									$prep_statement->execute();
-									$user_contacts = $prep_statement->fetchAll(PDO::FETCH_NAMED);
-									unset($prep_statement);
-									foreach ($user_contacts as $row) {
-										//get the contact_uuid
-											$uuid = $row['contact_uuid'];
-										//add the contacts to the contact array
-											if (!$this->contact_exists($contacts, $uuid)) {
-												$contacts[$uuid]['category'] = 'users';
-												$contacts[$uuid]['contact_uuid'] = $row['contact_uuid'];
-												$contacts[$uuid]['contact_type'] = $row['contact_type'];
-												$contacts[$uuid]['contact_category'] = $row['contact_category'];
-												$contacts[$uuid]['contact_organization'] = $row['contact_organization'];
-												$contacts[$uuid]['contact_name_given'] = $row['contact_name_given'];
-												$contacts[$uuid]['contact_name_family'] = $row['contact_name_family'];
-												$contacts[$uuid]['phone_label'] = $row['phone_label'];
-												$contacts[$uuid]['phone_number'] = $row['phone_number'];
-												$contacts[$uuid]['phone_extension'] = $row['phone_extension'];
-											}
+								//get the contacts assigned to the user and add to the contacts array
+									if ($_SESSION['provision']['contact_users']['boolean'] == "true") {
+										$this->contact_append($contacts, $line, $domain_uuid, $user_uuid, false);
 									}
 								}
 						}
@@ -868,6 +869,35 @@ include "root.php";
 					$view->assign("user_id",$user_id);
 					$view->assign("password",$password);
 					$view->assign("template",$device_template);
+
+				//get the time zone
+					$time_zone_name = $_SESSION['domain']['time_zone']['name'];
+					if (strlen($time_zone_name) > 0) {
+						$time_zone_offset_raw = get_time_zone_offset($time_zone_name)/3600;
+						$time_zone_offset_hours = floor($time_zone_offset_raw);
+						$time_zone_offset_minutes = ($time_zone_offset_raw - $time_zone_offset_hours) * 60;
+						$time_zone_offset_minutes = number_pad($time_zone_offset_minutes, 2);
+						if ($time_zone_offset_raw > 0) {
+							$time_zone_offset_hours = number_pad($time_zone_offset_hours, 2);
+							$time_zone_offset_hours = "+".$time_zone_offset_hours;
+						}
+						else {
+							$time_zone_offset_hours = str_replace("-", "", $time_zone_offset_hours);
+							$time_zone_offset_hours = "-".number_pad($time_zone_offset_hours, 2);
+						}
+						$time_zone_offset = $time_zone_offset_hours.":".$time_zone_offset_minutes;
+						if (!isset($provision["time_zone_offset"])) {
+							$provision["time_zone_offset"] = $time_zone_offset;
+						}
+					}
+
+				//set the daylight savings time
+					if (!isset($provision["yealink_time_zone_start_time"])) {
+						$provision["yealink_time_zone_start_time"] = $provision["daylight_savings_start_month"]."/".$provision["daylight_savings_start_day"]."/".$provision["daylight_savings_start_time"];
+					}
+					if (!isset($provision["yealink_time_zone_end_time"])) {
+						$provision["yealink_time_zone_end_time"] = $provision["daylight_savings_stop_month"]."/".$provision["daylight_savings_stop_day"]."/".$provision["daylight_savings_stop_time"];
+					}
 
 				//replace the dynamic provision variables that are defined in default, domain, and device settings
 					foreach($provision as $key=>$val) {

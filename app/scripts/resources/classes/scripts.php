@@ -107,14 +107,13 @@ if (!class_exists('scripts')) {
 						$src_dir = $_SERVER["DOCUMENT_ROOT"].PROJECT_PATH.'/resources/install/scripts';
 					}
 					if (is_readable($dst_dir)) {
-						recursive_copy($src_dir, $dst_dir);
-						unset($src_dir, $dst_dir);
+						recursive_copy($src_dir,$dst_dir);
+						unset($src_dir);
 					}else{
 						throw new Exception("Cannot read from '$src_dir' to get the scripts");
 					}
-					chmod($dst_dir, 0774);
-				} else {
-					throw new Exception("Scripts directory doesn't exist");
+					chmod($dst_dir, 0775);
+                                        unset($dst_dir);
 				}
 			}
 		}
@@ -203,7 +202,7 @@ if (!class_exists('scripts')) {
 						$tmp .= "	php_bin = \"php.exe\";\n";
 					}
 					else {
-						$tmp .= "	php_bin = \"php\";\n";
+						$tmp .= "	php_bin = \"php5\";\n";
 					}
 					$tmp .= $this->correct_path("	document_root = [[".$_SERVER["DOCUMENT_ROOT"].PROJECT_PATH."]];\n");
 					$tmp .= "\n";
