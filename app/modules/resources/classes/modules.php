@@ -17,7 +17,7 @@
 
 	The Initial Developer of the Original Code is
 	Mark J Crane <markjcrane@fusionpbx.com>
-	Copyright (C) 2010
+	Copyright (C) 2010 - 2016
 	All Rights Reserved.
 
 	Contributor(s):
@@ -25,59 +25,22 @@
 */
 include "root.php";
 
-//add the database structure
-/*
-require_once "resources/classes/modules.php";
-$mod = new modules;
-$mod->dir = $_SESSION['switch']['mod']['dir'];
-echo $mod->dir."\n";
-//database connection object
-	$mod->db = $db;
-//get modules from the database
-	$mod->get_modules();
-//module exists
-	if ($mod->exists("mod_lua")) {
-		echo "exists true\n";
-	}
-	else {
-		echo "exists false\n";
-	}
-//module active
-	if ($mod->active("mod_lua")) {
-		echo "active true\n";
-	}
-	else {
-		echo "active false\n";
-	}
-//synch
-	$mod->synch();
-	echo $mod->msg;
-//show module info
-	$result = $mod->info("mod_lua");
-	echo "<pre>\n";
-	print_r($result);
-	echo "</pre>\n";
-//list modules
-	//$result = $mod->modules
-	//echo "<pre>\n";
-	//print_r($result);
-	//echo "</pre>\n";
-*/
-
 //define the directory class
 	class modules {
-		public $db;
-		public $dir;
-		public $fp;
-		public $modules;
-		public $msg;
+		//define the variables
+			public $db;
+			public $dir;
+			public $fp;
+			public $modules;
+			public $msg;
 
-		// get the additional information about a specific module
+		//get the additional information about a specific module
 			public function info($name) {
 				$module_label = substr($name, 4);
 				$module_label = ucwords(str_replace("_", " ", $module_label));
 				$mod['module_label'] = $module_label;
 				$mod['module_name'] = $name;
+				$mod['module_order'] = '800';
 				$mod['module_enabled'] = 'false';
 				$mod['module_default_enabled'] = 'false';
 				$mod['module_description'] = '';
@@ -156,6 +119,7 @@ echo $mod->dir."\n";
 						$mod['module_label'] = 'Commands';
 						$mod['module_category'] = 'Applications';
 						$mod['module_description'] = 'API interface commands.';
+						$mod['module_order'] = 100;
 						$mod['module_enabled'] = 'true';
 						$mod['module_default_enabled'] = 'true';
 						break;
@@ -170,6 +134,7 @@ echo $mod->dir."\n";
 						$mod['module_label'] = 'Console';
 						$mod['module_category'] = 'Loggers';
 						$mod['module_description'] = 'Send logs to the console.';
+						$mod['module_order'] = 400;
 						$mod['module_enabled'] = 'true';
 						$mod['module_default_enabled'] = 'true';
 						break;
@@ -345,6 +310,7 @@ echo $mod->dir."\n";
 						$mod['module_label'] = 'Log File';
 						$mod['module_category'] = 'Loggers';
 						$mod['module_description'] = 'Send logs to the local file system.';
+						$mod['module_order'] = 400;
 						$mod['module_enabled'] = 'true';
 						$mod['module_default_enabled'] = 'true';
 						break;
@@ -359,7 +325,7 @@ echo $mod->dir."\n";
 						$mod['module_label'] = 'Lua';
 						$mod['module_category'] = 'Languages';
 						$mod['module_description'] = 'Lua script.';
-						$mod['module_order'] = 100;
+						$mod['module_order'] = 200;
 						$mod['module_enabled'] = 'true';
 						$mod['module_default_enabled'] = 'true';
 						break;
@@ -368,6 +334,7 @@ echo $mod->dir."\n";
 						$mod['module_category'] = 'Applications';
 						$mod['module_description'] = 'API for memcached.';
 						$mod['module_enabled'] = 'true';
+						$mod['module_order'] = 150;
 						$mod['module_default_enabled'] = 'true';
 						break;
 					case "mod_native_file":
@@ -584,6 +551,7 @@ echo $mod->dir."\n";
 						$mod['module_label'] = 'Syslog';
 						$mod['module_category'] = 'Loggers';
 						$mod['module_description'] = 'Send logs to a remote syslog server.';
+						$mod['module_order'] = 400;
 						$mod['module_enabled'] = 'true';
 						$mod['module_default_enabled'] = 'true';
 						break;
@@ -732,12 +700,7 @@ echo $mod->dir."\n";
 									//append the module label
 										$modules_new .= "<li>".$mod['module_label']."</li>\n";
 									//set the order
-										if (isset($mod['module_order'])) {
-											$order = $mod['module_order'];
-										}
-										else {
-											$order = 200;
-										}
+										$order = $mod['module_order'];
 									//insert the data
 										$module_uuid = uuid();
 										$sql = "insert into v_modules ";
@@ -770,7 +733,6 @@ echo $mod->dir."\n";
 					}
 					closedir($handle);
 					if ($module_found) {
-						//save_module_xml();
 						$msg = "<strong>Added New Modules:</strong><br />\n";
 						$msg .= "<ul>\n";
 						$msg .= $modules_new;
@@ -779,6 +741,89 @@ echo $mod->dir."\n";
 					}
 				}
 			}
+
+		//save the modules.conf.xml file
+			function xml() {
+				//set the globals
+					global $config, $domain_uuid;
+
+				//get the database connection
+					require_once "resources/classes/database.php";
+					$database = new database;
+					$database->connect();
+					$db = $database->db;
+
+					$xml = "<configuration name=\"modules.conf\" description=\"Modules\">\n";
+					$xml .= "	<modules>\n";
+
+					$sql = "select * from v_modules ";
+					$sql .= "order by module_order ASC, ";
+					$sql .= "module_category ASC";
+					$prep_statement = $db->prepare(check_sql($sql));
+					$prep_statement->execute();
+					$prev_module_cat = '';
+					$result = $prep_statement->fetchAll(PDO::FETCH_ASSOC);
+					foreach ($result as $row) {
+						if ($prev_module_cat != $row['module_category']) {
+							$xml .= "\n		<!-- ".$row['module_category']." -->\n";
+						}
+						if ($row['module_enabled'] == "true"){
+							$xml .= "		<load module=\"".$row['module_name']."\"/>\n";
+						}
+						$prev_module_cat = $row['module_category'];
+					}
+					$xml .= "\n";
+					$xml .= "	</modules>\n";
+					$xml .= "</configuration>";
+
+					$fout = fopen($_SESSION['switch']['conf']['dir']."/autoload_configs/modules.conf.xml","w");
+					fwrite($fout, $xml);
+					unset($xml);
+					fclose($fout);
+
+				//apply settings
+					$_SESSION["reload_xml"] = true;
+
+			}
 	} //class
+
+	//add the database structure
+/*
+require_once "resources/classes/modules.php";
+$mod = new modules;
+$mod->dir = $_SESSION['switch']['mod']['dir'];
+echo $mod->dir."\n";
+//database connection object
+	$mod->db = $db;
+//get modules from the database
+	$mod->get_modules();
+//module exists
+	if ($mod->exists("mod_lua")) {
+		echo "exists true\n";
+	}
+	else {
+		echo "exists false\n";
+	}
+//module active
+	if ($mod->active("mod_lua")) {
+		echo "active true\n";
+	}
+	else {
+		echo "active false\n";
+	}
+//synch
+	$mod->synch();
+	echo $mod->msg;
+//show module info
+	$result = $mod->info("mod_lua");
+	echo "<pre>\n";
+	print_r($result);
+	echo "</pre>\n";
+//list modules
+	//$result = $mod->modules
+	//echo "<pre>\n";
+	//print_r($result);
+	//echo "</pre>\n";
+*/
 
 ?>

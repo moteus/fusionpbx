@@ -378,50 +378,6 @@ function save_gateway_xml() {
 
 }
 
-function save_module_xml() {
-	global $config, $domain_uuid;
-
-	//get the database connection
-	require_once "resources/classes/database.php";
-	$database = new database;
-	$database->connect();
-	$db = $database->db;
-
-	$xml = "";
-	$xml .= "<configuration name=\"modules.conf\" description=\"Modules\">\n";
-	$xml .= "	<modules>\n";
-
-	$sql = "select * from v_modules order by module_name='mod_commands' OR module_category = 'Languages' OR  module_category = 'Loggers' DESC, module_category ";
-	$prep_statement = $db->prepare(check_sql($sql));
-	$prep_statement->execute();
-	$prev_module_cat = '';
-	$result = $prep_statement->fetchAll(PDO::FETCH_ASSOC);
-	foreach ($result as $row) {
-		if ($prev_module_cat != $row['module_category']) {
-			$xml .= "\n		<!-- ".$row['module_category']." -->\n";
-		}
-		if ($row['module_enabled'] == "true"){
-			$xml .= "		<load module=\"".$row['module_name']."\"/>\n";
-		}
-		$prev_module_cat = $row['module_category'];
-	}
-	$xml .= "\n";
-	$xml .= "	</modules>\n";
-	$xml .= "</configuration>";
-
-	$fout = fopen($_SESSION['switch']['conf']['dir']."/autoload_configs/modules.conf.xml","w");
-	fwrite($fout, $xml);
-	unset($xml);
-	fclose($fout);
-
-	//apply settings
-		$_SESSION["reload_xml"] = true;
-
-	//$cmd = "api reloadxml";
-	//event_socket_request_cmd($cmd);
-	//unset($cmd);
-}
-
 function save_var_xml() {
 	global $config, $domain_uuid;
 
@@ -454,17 +410,12 @@ function save_var_xml() {
 					$xml .= "<!-- ".base64_decode($row['var_description'])." -->\n";
 				}
 			}
+
+			if ($row['var_cat'] == 'Exec-Set') { $var_cmd = 'exec-set'; } else { $var_cmd = 'set'; }
 			if (strlen($row['var_hostname']) == 0) {
-				$xml .= "<X-PRE-PROCESS cmd=\"set\" data=\"".$row['var_name']."=".$row['var_value']."\"/>\n";
+				$xml .= "<X-PRE-PROCESS cmd=\"".$var_cmd."\" data=\"".$row['var_name']."=".$row['var_value']."\" />\n";
 			} elseif ($row['var_hostname'] == $hostname) {
-				$xml .= "<X-PRE-PROCESS cmd=\"set\" data=\"".$row['var_name']."=".$row['var_value']."\"/>\n";
-			}
-			$var_cmd = 'set';
-			if ($row['var_cat'] == 'Exec-Set') { $var_cmd = 'exec-set'; }
-			if (strlen($row['var_hostname']) == 0) {
-				$xml .= "<X-PRE-PROCESS cmd=\"".$var_cmd."\" data=\"".$row['var_name']."=".$row['var_value']."\"/>\n";
-			} elseif ($row['var_hostname'] == $hostname) {
-				$xml .= "<X-PRE-PROCESS cmd=\"".$var_cmd."\" data=\"".$row['var_name']."=".$row['var_value']."\"/>\n";
+				$xml .= "<X-PRE-PROCESS cmd=\"".$var_cmd."\" data=\"".$row['var_name']."=".$row['var_value']."\" />\n";
 			}
 		}
 		$prev_var_cat = $row['var_cat'];
@@ -1512,7 +1463,10 @@ if (!function_exists('save_switch_xml')) {
 				save_setting_xml();
 			}
 			if (file_exists($_SERVER["PROJECT_ROOT"]."/app/modules/app_config.php")) {
-				save_module_xml();
+				require_once $_SERVER["DOCUMENT_ROOT"].PROJECT_PATH."/app/modules/resources/classes/modules.php";
+				$module = new modules;
+				$module->xml();
+				//$msg = $module->msg;
 			}
 			if (file_exists($_SERVER["PROJECT_ROOT"]."/app/vars/app_config.php")) {
 				save_var_xml();
@@ -1561,7 +1515,7 @@ if(!function_exists('path_join')) {
 }
 
 if(!function_exists('find_php_by_extension')) {
-	/*Tesetd on WAMP and OpenServer*/
+	// Tested on WAMP and OpenServer
 	function find_php_by_extension(){
 		$bin_dir = get_cfg_var('extension_dir');
 
