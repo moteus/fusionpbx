@@ -246,13 +246,13 @@ include "root.php";
 				$prep_statement->execute();
 				$result = $prep_statement->fetchAll(PDO::FETCH_NAMED);
 				if (is_array($result)) foreach ($result as &$row) {
-						$this->extension = $row["extension"];
-						$this->accountcode = $row["accountcode"];
-						$this->toll_allow = $row["toll_allow"];
-						$this->number_alias = $row["number_alias"];
-						$this->outbound_caller_id_name = $row["outbound_caller_id_name"];
-						$this->outbound_caller_id_number = $row["outbound_caller_id_number"];
-					}
+					$this->extension = $row["extension"];
+					$this->accountcode = $row["accountcode"];
+					$this->toll_allow = $row["toll_allow"];
+					$this->number_alias = $row["number_alias"];
+					$this->outbound_caller_id_name = $row["outbound_caller_id_name"];
+					$this->outbound_caller_id_number = $row["outbound_caller_id_number"];
+				}
 
 			//determine whether to update the dial string
 				$sql = "select * from v_follow_me ";
@@ -262,10 +262,10 @@ include "root.php";
 				$prep_statement->execute();
 				$result = $prep_statement->fetchAll(PDO::FETCH_NAMED);
 				if (is_array($result)) foreach ($result as &$row) {
-						$follow_me_uuid = $row["follow_me_uuid"];
-						$this->cid_name_prefix = $row["cid_name_prefix"];
-						$this->cid_number_prefix = $row["cid_number_prefix"];
-					}
+					$follow_me_uuid = $row["follow_me_uuid"];
+					$this->cid_name_prefix = $row["cid_name_prefix"];
+					$this->cid_number_prefix = $row["cid_number_prefix"];
+				}
 				unset ($prep_statement);
 
 			//add follow me
