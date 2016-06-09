@@ -43,6 +43,7 @@
 	local cache = require "resources.functions.cache"
 	local Database = require "resources.functions.database"
 	local Settings = require "resources.functions.lazy_settings"
+	local route_to_bridge = require "resources.functions.route_to_bridge"
 
 	local function empty(t)
 		return (not t) or (#t == 0)
@@ -244,7 +245,20 @@
 
 			dial_string = dial_string .. ",presence_id="..presence_id.."@"..domain_name;
 			dial_string = dial_string .. "}";
-			dial_string = dial_string .. "loopback/"..forward_all_destination;
+			local mode = opt(settings(domain_uuid), 'domain', 'bridge', 'text')
+			if mode == "outbound" or mode == "bridge" then
+				local bridge = route_to_bridge(dbh, domain_uuid, {
+					destination_number = forward_all_destination;
+					['${toll_allow}'] = toll_allow;
+				})
+				if bridge and bridge.bridge then
+					dial_string = dial_string .. bridge.bridge
+				else
+					log.warning('Can not build dialstring for call forward number.')
+				end
+			else
+				dial_string = dial_string .. "loopback/"..forward_all_destination;
+			end
 		end
 	end
 
