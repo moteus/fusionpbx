@@ -245,7 +245,7 @@
 
 			dial_string = dial_string .. ",presence_id="..presence_id.."@"..domain_name;
 			dial_string = dial_string .. "}";
-			local mode = opt(settings(domain_uuid), 'domain', 'bridge', 'text')
+			local mode = settings:get('domain', 'bridge', 'text')
 			if mode == "outbound" or mode == "bridge" then
 				local bridge = route_to_bridge(dbh, domain_uuid, {
 					destination_number = forward_all_destination;
