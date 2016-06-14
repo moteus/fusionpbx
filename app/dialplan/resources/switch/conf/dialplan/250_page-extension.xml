@@ -6,8 +6,6 @@
 			<action application="set" data="pin_number={v_pin_number}"/>
 			<action application="set" data="mute=true"/>
 			<action application="set" data="moderator=false" />
-			<action application="bind_digit_action" data="page,*#,exec:execute_extension,page_add_begin XML page.${domain_name}"/>
-			<action application="digit_action_set_realm" data="page"/>
 			<action application="lua" data="page.lua"/>
 		</condition>
 	</extension>

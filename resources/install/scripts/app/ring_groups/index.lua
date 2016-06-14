@@ -543,6 +543,12 @@ local log = require "resources.functions.log".ring_group
 					session:execute("set", "hangup_after_bridge=true");
 					session:execute("set", "continue_on_fail=true");
 
+				-- support conf-xfer feature
+				do
+					local uuid = api:executeString("create_uuid")
+					session:execute("export", "conf_xfer_number=xfer-" .. uuid .. "-" .. domain_name)
+				end
+
 					local bind_target = 'both'
 					if session:getVariable("sip_authorized") ~= "true" then
 						bind_target = 'peer'
@@ -554,7 +560,7 @@ local log = require "resources.functions.log".ring_group
 						"local,*2,exec:record_session," .. record_file,
 						"local,*3,exec:execute_extension,cf XML " .. context,
 						"local,*#,exec:execute_extension,att_xfer XML " .. context,
-						"local,*0,api:lua,transfer2.lua "..uuid.." page_add_begin::XML::page."..domain_name.." page_enter_to::XML::page."..domain_name,
+						"local,*0,exec:execute_extension,conf_xfer_from_dialplan XML conf-xfer@" .. context
 					}
 					for _, str in ipairs(bindings) do
 						session:execute("bind_digit_action", str .. "," .. bind_target)

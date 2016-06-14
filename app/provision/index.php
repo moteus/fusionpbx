@@ -96,7 +96,7 @@ The file name is fixed to `Account1_Extern.xml`.
 	}
 
 //get the domain_name and domain_uuid
-	if ($_SESSION['provision']['http_domain_filter']['text'] == "false") {
+	if ((!isset($_SESSION['provision']['http_domain_filter'])) or $_SESSION['provision']['http_domain_filter']['text'] == "false") {
 		//get the domain_uuid
 			$sql = "SELECT domain_uuid FROM v_devices ";
 			$sql .= "WHERE device_mac_address = '".$mac."' ";
@@ -389,7 +389,7 @@ The file name is fixed to `Account1_Extern.xml`.
 			header('Expires: 0');
 			header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
 			header('Pragma: public');
-			header('Content-Length: ' . filesize($file_contents));
+			header('Content-Length: ' . strlen($file_contents));
 	}
 	else {
 	$cfg_ext = ".cfg";

@@ -25,6 +25,7 @@
 */
 
 //define the menu class
+if (!class_exists('menu')) {
 	class menu {
 		//define the variables
 			public $menu_uuid;
@@ -98,6 +99,7 @@
 								$menu_item_uuid = $menu['uuid'];
 								$menu_item_parent_uuid = $menu['parent_uuid'];
 								$menu_item_category = $menu['category'];
+								$menu_item_icon = $menu['icon'];
 								$menu_item_path = $menu['path'];
 								$menu_item_order = $menu['order'];
 								$menu_item_description = $menu['desc'];
@@ -119,6 +121,7 @@
 											$sql .= "menu_item_title, ";
 											$sql .= "menu_item_link, ";
 											$sql .= "menu_item_category, ";
+											$sql .= "menu_item_icon, ";
 											if (strlen($menu_item_order) > 0) {
 												$sql .= "menu_item_order, ";
 											}
@@ -134,6 +137,7 @@
 											$sql .= "'".check_str($menu_item_title)."', ";
 											$sql .= "'$menu_item_path', ";
 											$sql .= "'$menu_item_category', ";
+											$sql .= "'$menu_item_icon', ";
 											if (strlen($menu_item_order) > 0) {
 												$sql .= "'$menu_item_order', ";
 											}
@@ -202,7 +206,7 @@
 				//if there are no groups listed in v_menu_item_groups under menu_item_uuid then add the default groups
 					foreach($apps as $app) {
 						foreach ($app['menu'] as $sub_row) {
-							foreach ($sub_row['groups'] as $group) {
+							if (isset($sub_row['groups'])) foreach ($sub_row['groups'] as $group) {
 								$sql = "select count(*) as count from v_menu_item_groups ";
 								$sql .= "where menu_item_uuid = '".$sub_row['uuid']."' ";
 								$sql .= "and menu_uuid = '".$this->menu_uuid."' ";
@@ -403,7 +407,7 @@
 
 				//get the menu from the database
 					if (strlen($sql) == 0) { //default sql for base of the menu
-						$sql = "select i.menu_item_link, l.menu_item_title as menu_language_title, i.menu_item_title, i.menu_item_protected, i.menu_item_category, i.menu_item_uuid, i.menu_item_parent_uuid ";
+						$sql = "select i.menu_item_link, l.menu_item_title as menu_language_title, i.menu_item_title, i.menu_item_protected, i.menu_item_category, i.menu_item_icon, i.menu_item_uuid, i.menu_item_parent_uuid ";
 						$sql .= "from v_menu_items as i, v_menu_languages as l ";
 						$sql .= "where i.menu_item_uuid = l.menu_item_uuid ";
 						$sql .= "and l.menu_language = '".$_SESSION['domain']['language']['code']."' ";
@@ -474,7 +478,7 @@
 					$menu_item_level = $menu_item_level+1;
 
 				//get the child menu from the database
-					$sql = "select i.menu_item_link, l.menu_item_title as menu_language_title, i.menu_item_title, i.menu_item_protected, i.menu_item_category, i.menu_item_uuid, i.menu_item_parent_uuid ";
+					$sql = "select i.menu_item_link, l.menu_item_title as menu_language_title, i.menu_item_title, i.menu_item_protected, i.menu_item_category, i.menu_item_icon, i.menu_item_uuid, i.menu_item_parent_uuid ";
 					$sql .= "from v_menu_items as i, v_menu_languages as l ";
 					$sql .= "where i.menu_item_uuid = l.menu_item_uuid ";
 					$sql .= "and l.menu_language = '".$_SESSION['domain']['language']['code']."' ";
@@ -512,6 +516,7 @@
 							//set the variables
 								$menu_item_link = $row['menu_item_link'];
 								$menu_item_category = $row['menu_item_category'];
+								$menu_item_icon = $row['menu_item_icon'];
 								$menu_item_uuid = $row['menu_item_uuid'];
 								$menu_item_parent_uuid = $row['menu_item_parent_uuid'];
 
@@ -546,7 +551,7 @@
 				//set the default menu_uuid
 					$this->menu_uuid = 'b4750c3f-2a86-b00d-b7d0-345c14eca286';
 				//check to see if any menu exists
-					$sql = "select count(*) from v_menus ";
+					$sql = "select count(*) as count from v_menus ";
 					$sql .= "where menu_uuid = '".$this->menu_uuid."' ";
 					$prep_statement = $this->db->prepare(check_sql($sql));
 					$prep_statement->execute();
@@ -580,5 +585,6 @@
 					}
 			} //end function
 	}
+}
 
 ?>

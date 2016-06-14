@@ -64,24 +64,19 @@ else {
 
 		//make sure the directories exist
 			if (!is_dir($_SESSION['switch']['storage']['dir'])) {
-				mkdir($_SESSION['switch']['storage']['dir']);
-				chmod($dir_fax_sent,0774);
+				mkdir($_SESSION['switch']['storage']['dir'],02770,true);
 			}
 			if (!is_dir($fax_dir.'/'.$fax_extension)) {
-				mkdir($fax_dir.'/'.$fax_extension,0774,true);
-				chmod($fax_dir.'/'.$fax_extension,0774);
+				mkdir($fax_dir.'/'.$fax_extension,02770,true);
 			}
 			if (!is_dir($dir_fax_inbox)) {
-				mkdir($dir_fax_inbox,0774,true);
-				chmod($dir_fax_inbox,0774);
+				mkdir($dir_fax_inbox,02770,true);
 			}
 			if (!is_dir($dir_fax_sent)) {
-				mkdir($dir_fax_sent,0774,true);
-				chmod($dir_fax_sent,0774);
+				mkdir($dir_fax_sent,02770,true);
 			}
 			if (!is_dir($dir_fax_temp)) {
-				mkdir($dir_fax_temp,0774,true);
-				chmod($dir_fax_temp,0774);
+				mkdir($dir_fax_temp,02770,true);
 			}
 	}
 
@@ -221,7 +216,7 @@ if (count($_POST)>0 && strlen($_POST["persistformvar"]) == 0) {
 			$php_bin = 'php.exe';
 		}
 		else {
-			$php_bin = 'php';
+			$php_bin = 'php5';
 		}
 
 	//add or update the database
@@ -658,7 +653,7 @@ if (count($_POST)>0 && strlen($_POST["persistformvar"]) == 0) {
 				}
 				$sql = "SELECT * FROM v_users ";
 				$sql .= "where domain_uuid = '".$_SESSION['domain_uuid']."' ";
-				foreach($assigned_user_uuids as $assigned_user_uuid) {
+				if (isset($assigned_user_id)) foreach($assigned_user_uuids as $assigned_user_uuid) {
 					$sql .= "and user_uuid <> '".$assigned_user_uuid."' ";
 				}
 				unset($assigned_user_uuids);

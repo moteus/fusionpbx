@@ -195,6 +195,17 @@ $text['label-voicemail']['de-at'] = "Sprachnachricht";
 $text['label-voicemail']['ar-eg'] = "البريد الصوتي";
 $text['label-voicemail']['he'] = "תיבה קולית";
 
+$text['label-user']['en-us'] = "User";
+$text['label-user']['es-cl'] = "Usuario";
+$text['label-user']['pt-pt'] = "Utilizadore";
+$text['label-user']['fr-fr'] = "Utilisateur";
+$text['label-user']['pt-br'] = "Usuário";
+$text['label-user']['pl'] = "Użytkownicy";
+$text['label-user']['sv-se'] = "Användare";
+$text['label-user']['uk'] = "Користувачі";
+$text['label-user']['de-at'] = "Benutzer";
+$text['label-user']['he'] = "";
+
 $text['label-user_id']['en-us'] = "User ID";
 $text['label-user_id']['es-cl'] = "ID de usuario";
 $text['label-user_id']['pt-pt'] = "ID do utilizador";
@@ -1863,6 +1874,16 @@ $text['header-device']['ro'] = "";
 $text['header-device']['de-at'] = "Gerät";
 $text['header-device']['ar-eg'] = "";
 $text['header-device']['he'] = "מכשיר";
+
+$text['description-user']['en-us'] = "Assign a user to this device.";
+$text['description-user']['es-cl'] = "Asignar un usuario a este dispositivo.";
+$text['description-user']['pt-pt'] = "Atribuir um usuário a este dispositivo.";
+$text['description-user']['fr-fr'] = "Affectation d'un utilisateur à cet appareil.";
+$text['description-user']['pt-br'] = "Atribuir um usuário a este dispositivo.";
+$text['description-user']['pl'] = "Przypisywanie użytkownika do tego urządzenia.";
+$text['description-user']['sv-se'] = "Tilldela en användare till den här enheten.";
+$text['description-user']['uk'] = "Призначення користувача Цей пристрій.";
+$text['description-user']['de-at'] = "Zuweisen eines Benutzers zu diesem Gerät.";
 
 $text['description-user_id']['en-us'] = "Enter the user ID.";
 $text['description-user_id']['es-cl'] = "Ingrese el ID de usuario.";
