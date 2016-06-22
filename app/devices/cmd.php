@@ -26,7 +26,7 @@
 include "root.php";
 require_once "resources/require.php";
 require_once "resources/check_auth.php";
-if (permission_exists("registration_domain") || permission_exists("registration_all") || if_group("superadmin")) {
+if (permission_exists("device_key_add") || permission_exists("device_key_edit") || if_group("superadmin")) {
 	//access granted
 }
 else {

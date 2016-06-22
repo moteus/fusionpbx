@@ -160,15 +160,22 @@
 //set the sub array index
 	$x = "999";
 
-//get device keys
+//get device
 	$sql = "SELECT device_uuid, device_profile_uuid FROM v_devices ";
-	$sql .= "WHERE user_uuid = '".$_SESSION['user_uuid']."' ";
+	$sql .= "WHERE device_user_uuid = '".$_SESSION['user_uuid']."' ";
 	$prep_statement = $db->prepare(check_sql($sql));
 	$prep_statement->execute();
 	$row = $prep_statement->fetch(PDO::FETCH_NAMED);
 	$device_uuid = $row['device_uuid'];
 	$device_profile_uuid = $row['device_profile_uuid'];
 	unset($row);
+
+//get device lines
+	$sql = "SELECT * from v_device_lines ";
+	$sql .= "WHERE device_uuid = '".$device_uuid."' ";
+	$prep_statement = $db->prepare(check_sql($sql));
+	$prep_statement->execute();
+	$device_lines = $prep_statement->fetchAll(PDO::FETCH_NAMED);
 
 //get device keys
 	$sql = "SELECT * from v_device_keys ";
@@ -231,6 +238,10 @@
 	}
 	echo "	<br />";
 	echo "	</div>\n";
+
+//	echo "	<div style='float: right;'>";
+//	echo "		<input type='button' class='btn' value='".$text['button-apply']."' onclick=\"document.location.href='".PROJECT_PATH."/app/devices/cmd.php?cmd=check_sync&profile=".$sip_profile_name."&show=".$show."&user=".$row['user']."&domain=".$row['sip-auth-realm']."&agent=".urlencode($row['agent'])."';\" ".$onhover_pause_refresh.">\n";
+//	echo "	</div>\n";
 
 	echo "<div style='float: right;'>\n";
 	echo "	<input type='submit' class='btn' value='".$text['button-save']."'>";
