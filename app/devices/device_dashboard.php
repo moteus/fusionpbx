@@ -160,9 +160,9 @@
 //set the sub array index
 	$x = "999";
 
-//get device keys
+//get device
 	$sql = "SELECT device_uuid, device_profile_uuid FROM v_devices ";
-	$sql .= "WHERE user_uuid = '".$_SESSION['user_uuid']."' ";
+	$sql .= "WHERE device_user_uuid = '".$_SESSION['user_uuid']."' ";
 	$prep_statement = $db->prepare(check_sql($sql));
 	$prep_statement->execute();
 	$row = $prep_statement->fetch(PDO::FETCH_NAMED);
@@ -172,6 +172,7 @@
 
 //get device lines
 	$sql = "SELECT * from v_device_lines ";
+	$sql .= "WHERE device_uuid = '".$device_uuid."' ";
 	$prep_statement = $db->prepare(check_sql($sql));
 	$prep_statement->execute();
 	$device_lines = $prep_statement->fetchAll(PDO::FETCH_NAMED);
