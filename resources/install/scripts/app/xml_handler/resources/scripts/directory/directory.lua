@@ -324,6 +324,7 @@
 								nibble_account = row.nibble_account;
 								sip_bypass_media = row.sip_bypass_media;
 								absolute_codec_string = row.absolute_codec_string;
+								force_ping = row.force_ping;
 								forward_all_enabled = row.forward_all_enabled;
 								forward_all_destination = row.forward_all_destination;
 								forward_busy_enabled = row.forward_busy_enabled;
@@ -559,6 +560,9 @@
 							if (string.len(absolute_codec_string) > 0) then
 								table.insert(xml, [[								<variable name="absolute_codec_string" value="]] .. absolute_codec_string .. [["/>]]);
 							end
+							if (string.len(force_ping) > 0) then
+								table.insert(xml, [[								<variable name="force_ping" value="]] .. force_ping .. [["/>]]);
+							end
 							if (sip_bypass_media == "bypass-media") then
 								table.insert(xml, [[								<variable name="bypass_media" value="true"/>]]);
 							end
@@ -626,12 +630,10 @@
 								result = trim(api:execute("memcache", "set " .. key .. " '"..XML_STRING:gsub("'", "&#39;").."' "..expire["directory"]));
 							end
 
-						--send the xml to the console
-							if (debug["xml_string"]) then
-								local file = assert(io.open(temp_dir .. "/" .. user .. "@" .. domain_name .. ".xml", "w"));
-								file:write(XML_STRING);
-								file:close();
-							end
+						--save to the conf directory
+							--local file = assert(io.open(conf_dir .. "/directory/" .. user .. "@" .. domain_name .. ".xml.cache", "w"));
+							--file:write(XML_STRING);
+							--file:close();
 
 						--send to the console
 							if (debug["cache"]) then
