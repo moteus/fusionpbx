@@ -6,7 +6,6 @@
 			<action application="limit" data="hash ${domain_name} ${destination_number} ${limit_max} ${limit_destination}" inline="false" />
 		</condition>
 
-		<!--Allow transfer/record only for internal users-->
 		<condition field="${sip_authorized}" expression="true" break="never">
 			<action application="set" data="bind_target=both" inline="true"/>
 			<!-- set to `peer` to prevent manipulate of call by caller -->
@@ -34,6 +33,7 @@
 			<!--<action application="export" data="nolocal:sip_secure_media=${user_data(${dialed_extension}@${domain_name} var sip_secure_media)}"/>-->
 			<action application="hash" data="insert/${domain_name}-last_dial/${called_party_call_group}/${uuid}"/>
 			<action application="set" data="api_hangup_hook=lua app.lua hangup"/>
+			<action application="export" data="domain_name=${context}"/>
 			<!-- standard method -->
 			<action application="bridge" data="user/${destination_number}@${domain_name}"/>
 			<!-- sofia contact -->
