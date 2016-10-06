@@ -435,8 +435,8 @@ local log = require "resources.functions.log".ring_group
 						cmd = "user_data ".. destination_number .."@"..domain_name.." var extension_uuid";
 						extension_uuid = trim(api:executeString(cmd));
 						--send to user
-						local dial_string_to_user = "[sip_invite_domain="..domain_name..",call_direction="..call_direction..","..group_confirm.."leg_timeout="..destination_timeout..","..delay_name.."="..destination_delay..",dialed_extension=" .. row.destination_number .. ",extension_uuid="..extension_uuid .. row.record_session .. "]user/" .. row.destination_number .. "@" .. domain_name;
-							dial_string = dial_string_to_user;
+						local dial_string_to_user = "[sip_invite_domain="..domain_name..",call_direction="..call_direction..","..group_confirm.."leg_timeout="..destination_timeout..","..delay_name.."="..destination_delay..",dialed_extension=" .. row.destination_number .. ",extension_uuid="..extension_uuid .. row.record_session .. row._spim_http .. "]user/" .. row.destination_number .. "@" .. domain_name;
+						dial_string = dial_string_to_user;
 					elseif (tonumber(destination_number) == nil) then
 						--sip uri
 						dial_string = "[sip_invite_domain="..domain_name..",call_direction="..call_direction..","..group_confirm.."leg_timeout="..destination_timeout..","..delay_name.."="..destination_delay.."]" .. row.destination_number;
