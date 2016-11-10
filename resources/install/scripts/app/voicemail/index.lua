@@ -37,8 +37,8 @@
 	direct_dial["max_digits"] = 4;
 
 --debug
-	debug["info"] = false;
-	debug["sql"] = false;
+	debug["info"] = true;
+	debug["sql"] = true;
 
 --get the argv values
 	script_name = argv[1];
@@ -271,7 +271,11 @@
 				if (voicemail_id) then
 					if (voicemail_authorized) then
 						if (voicemail_authorized == "true") then
-							--skip the password check
+							if (voicemail_id == sip_from_user or voicemail_id == sip_number_alias) then
+								--skip the password check
+							else
+								check_password(voicemail_id, password_tries);
+							end
 						else
 							check_password(voicemail_id, password_tries);
 						end
@@ -383,6 +387,9 @@
 								if (storage_type == "base64") then
 									table.insert(sql, "message_base64, ");
 								end
+								if (transcribe_enabled == "true") then
+									table.insert(sql, "message_transcription, ");
+								end
 								table.insert(sql, "message_length ");
 								--table.insert(sql, "message_status, ");
 								--table.insert(sql, "message_priority, ");
@@ -397,6 +404,9 @@
 								table.insert(sql, "'"..caller_id_number.."', ");
 								if (storage_type == "base64") then
 									table.insert(sql, "'"..message_base64.."', ");
+								end
+								if (transcribe_enabled == "true") then
+									table.insert(sql,  "'"..transcription.."', ");
 								end
 								table.insert(sql, "'"..message_length.."' ");
 								--table.insert(sql, "'"..message_status.."', ");

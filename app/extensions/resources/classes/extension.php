@@ -82,6 +82,20 @@ if (!class_exists('extension')) {
 			}
 		}
 
+		public function exists($extension) {
+			$sql = "select extension_uuid from v_extensions ";
+			$sql .= "where domain_uuid = '".$this->domain_uuid."' ";
+			$sql .= "and (extension = '$extension' or number_alias = '$extension') ";
+			$sql .= "and enabled = 'true' ";
+			$result = $this->db->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+			if (count($result) > 0) {
+				return true;
+			}
+			else {
+				return false;
+			}
+		}
+
 		public function get_domain_uuid() {
 			return $this->domain_uuid;
 		}
@@ -174,7 +188,7 @@ if (!class_exists('extension')) {
 				//write the xml files
 					$sql = "SELECT * FROM v_extensions AS e, v_voicemails AS v ";
 					$sql .= "WHERE e.domain_uuid = '$domain_uuid' ";
-					$sql .= "AND AND COALESCE(NULLIF(e.number_alias,''),e.extension) = CAST(v.voicemail_id as VARCHAR) ";
+					$sql .= "AND COALESCE(NULLIF(e.number_alias,''),e.extension) = CAST(v.voicemail_id as VARCHAR) ";
 					$sql .= "ORDER BY e.call_group ASC ";
 					$prep_statement = $db->prepare(check_sql($sql));
 					$prep_statement->execute();

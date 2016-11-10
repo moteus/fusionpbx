@@ -17,35 +17,43 @@
 
 	The Initial Developer of the Original Code is
 	Mark J Crane <markjcrane@fusionpbx.com>
-	Portions created by the Initial Developer are Copyright (C) 2008-2013
+	Portions created by the Initial Developer are Copyright (C) 2008-2014
 	the Initial Developer. All Rights Reserved.
 
 	Contributor(s):
 	Mark J Crane <markjcrane@fusionpbx.com>
 */
-include "root.php";
-require_once "resources/require.php";
-require_once "resources/check_auth.php";
-if (permission_exists('user_view') || if_group("superadmin")) {
-	//access allowed
-}
-else {
-	echo "access denied";
-	return;
-}
+
+//check permisions
+	if (!$included) {
+		include "root.php";
+		require_once "resources/require.php";
+		require_once "resources/check_auth.php";
+		if (permission_exists('group_edit')) {
+			//access granted
+		}
+		else {
+			echo "access denied";
+			return;
+		}
+	}
 
 //add multi-lingual support
 	$language = new text;
 	$text = $language->get();
 
-//include the header
-	require_once "resources/header.php";
-	$document['title'] = $text['title-user_manager'];
+//permission restore default
+	require_once "core/groups/resources/classes/permission.php";
+	$permission = new permission;
+	$permission->db = $db;
+	$permission->restore();
 
-//show the user list
-	require_once "users.php";
-
-//include the footer
-	include "resources/footer.php";
+//redirect the users
+	if (!$included) {
+		//show a message to the user
+		$_SESSION["message"] = $text['message-restore'];
+		header("Location: groups.php");
+		return;
+	}
 
 ?>

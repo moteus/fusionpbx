@@ -54,6 +54,11 @@ This method causes the script to get its manadatory arguments directly from the 
 			loglevel = "W" -- Warning, Debug, Info
 			}
 
+--check if cid_num is numeric
+	if (tonumber(params["cid_num"]) == nil) then
+		return
+	end
+
 -- local storage
 	local sql = nil
 
