@@ -11,6 +11,8 @@
 
 require 'resources.functions.config'
 
+require "resources.functions.split"
+
 local log = require "resources.functions.log".database
 
 local BACKEND = database and database.backend
@@ -23,7 +25,18 @@ local unpack = unpack or table.unpack
 
 local NULL, DEFAULT = {}, {}
 
-local param_pattern = "[:]([^%d%s][%a%d_]+)"
+local param_pattern = "[:]([%a][%a%d%%_]*)"
+
+local uuid_pattern = '^%x%x%x%x%x%x%x%x%-%x%x%x%x%-%x%x%x%x%-%x%x%x%x%-%x%x%x%x%x%x%x%x%x%x%x%x$'
+
+local params_hints = {
+  is_extension     = function(s) return (#s <= 30) and (not string.find(s, "[^%a%d%._-]")) end;
+  is_uuid          = function(s) return not not string.match(s, uuid_pattern)              end;
+  is_domain        = function(s) return (#s <= 50) and (not string.find(s, "[^%a%d%._-]")) end;
+  is_path          = function(s) return not string.find(s, "[^%a%d%.\\/_-]")               end;
+  is_numeric       = function(s) return not string.find(s, "[^%d]")                        end;
+  is_alpha_numeric = function(s) return not string.find(s, "[^%a%d]")                      end;
+}
 
 --
 -- Substitude named parameters to query
@@ -37,14 +50,36 @@ local param_pattern = "[:]([^%d%s][%a%d_]+)"
 local function apply_params(db, sql, params)
   params = params or {}
 
+  local err
   local str = string.gsub(sql, param_pattern, function(param)
-    local v, t = params[param], type(params[param])
-    if "string"  == t then return db:quote(v)      end
-    if "number"  == t then return tostring(v)      end
-    if "boolean" == t then return v and '1' or '0' end
-    if NULL      == v then return 'NULL'           end
-    if DEFAULT   == v then return 'DEFAULT'        end
-    err = "undefined parameter: " .. param
+    if err then return end
+
+    local hint
+    param, hint = split_first(param, '%', true)
+
+    local value = params[param]
+
+    assert(value ~= nil, 'invalid value for parameter: `' .. param .. '`')
+
+    if hint then
+      local hint_fn = params_hints[hint]
+      if not hint_fn then
+        err = 'unsupported parameter hint: `' .. hint .. '`'
+      elseif not hint_fn(value) then
+        err = 'invalid value for parameter: `' .. param .. '`'
+      end
+      if err then return end
+    end
+
+    local vtype = type(value)
+
+    if "string"  == vtype then return db:quote(value)      end
+    if "number"  == vtype then return tostring(value)      end
+    if "boolean" == vtype then return value and '1' or '0' end
+    if NULL      == value then return 'NULL'               end
+    if DEFAULT   == value then return 'DEFAULT'            end
+
+    err = 'invalid value for parameter: `' .. param .. '`'
   end)
 
   if err then return nil, err end
