@@ -106,14 +106,14 @@ This method causes the script to get its manadatory arguments directly from the 
 			end
 
 		--check if the the call block is blocked
-			sql = "SELECT * FROM v_call_block as c "
+			local sql = "SELECT * FROM v_call_block as c "
 			sql = sql .. "JOIN v_domains as d ON c.domain_uuid=d.domain_uuid "
-			sql = sql .. "WHERE d.domain_name = '" .. params["domain_name"] .."' AND("
-			sql = sql .. "(c.call_block_number = '" .. params["cid_num"] .. "' AND "
+			sql = sql .. "WHERE d.domain_name = :domain_name AND("
+			sql = sql .. "(c.call_block_number = :cid_num AND "
 			sql = sql .. "(c.call_block_number_type <> 'called' or c.call_block_number_type is NULL)) OR"
-			sql = sql .. "(c.call_block_number = '" .. params["called_num"] .. "' AND c.call_block_number_type = 'called'))"
+			sql = sql .. "(c.call_block_number = :called_num AND c.call_block_number_type = 'called'))"
 
-			status = dbh:query(sql, function(rows)
+			status = dbh:query(sql, params, function(rows)
 				found_cid_num = rows["call_block_number"];
 				found_num_type = rows["call_block_number_type"];
 				found_uuid = rows["call_block_uuid"];

@@ -252,12 +252,6 @@
 									reg_user = trim(api:execute("user_data", dialed_extension .. "@" .. domain_name .. " attr id"));
 								end
 
-							--get register name
-								local reg_user = dialed_extension
-								if not DIAL_STRING_BASED_ON_USERID then
-									reg_user = trim(api:execute("user_data", dialed_extension .. "@" .. domain_name .. " attr id"));
-								end
-
 							--get the destination hostname from the registration
 								local params = {reg_user=reg_user, domain_name=domain_name}
 								local sql = "SELECT hostname FROM registrations "
