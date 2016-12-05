@@ -246,7 +246,6 @@
 			dial_string = dial_string .. ",sip_h_X-accountcode=${accountcode}";
 		else
 			dial_string = dial_string .. ",sip_h_X-accountcode="..accountcode;
-			dial_string = dial_string .. ",sip_h_X-accountcode="..accountcode;
 			dial_string = dial_string .. ",accountcode="..accountcode;
 		end
 		dial_string = dial_string .. forward_caller_id
