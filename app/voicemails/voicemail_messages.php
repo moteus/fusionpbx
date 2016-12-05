@@ -23,18 +23,22 @@
  Contributor(s):
  Mark J Crane <markjcrane@fusionpbx.com>
 */
+
+//includes
 require_once "root.php";
 require_once "resources/require.php";
-if (!(check_str($_REQUEST["action"]) == "download" && check_str($_REQUEST["src"]) == "email")) {
-	require_once "resources/check_auth.php";
-	if (permission_exists('voicemail_message_view')) {
-		//access granted
+
+//check permissions
+	if (!(check_str($_REQUEST["action"]) == "download" && check_str($_REQUEST["src"]) == "email")) {
+		require_once "resources/check_auth.php";
+		if (permission_exists('voicemail_message_view')) {
+			//access granted
+		}
+		else {
+			echo "access denied";
+			exit;
+		}
 	}
-	else {
-		echo "access denied";
-		exit;
-	}
-}
 
 //add multi-lingual support
 	$language = new text;
@@ -114,7 +118,7 @@ if (!(check_str($_REQUEST["action"]) == "download" && check_str($_REQUEST["src"]
 				echo "	<td colspan='".(($_SESSION['voicemail']['storage_type']['text'] != 'base64') ? 3 : 2)."' valign='bottom' align='right'>\n";
 				echo "		<input type='button' class='btn' alt='".$text['button-toggle']."' onclick=\"$('#frm').attr('action', 'voicemail_message_toggle.php').submit();\" value='".$text['button-toggle']."'>\n";
 				if (permission_exists('voicemail_greeting_view')) {
-					echo "	<input type='button' class='btn' alt='".$text['button-greetings']."' onclick=\"document.location.href='".PROJECT_PATH."/app/voicemail_greetings/voicemail_greetings.php?id=".$field['voicemail_id']."'\" value='".$text['button-greetings']."'>\n";
+					echo "	<input type='button' class='btn' alt='".$text['button-greetings']."' onclick=\"document.location.href='".PROJECT_PATH."/app/voicemail_greetings/voicemail_greetings.php?id=".$field['voicemail_id']."&back=".urlencode($_SERVER["REQUEST_URI"])."'\" value='".$text['button-greetings']."'>\n";
 				}
 				if (permission_exists('voicemail_edit')) {
 					echo "	<input type='button' class='btn' alt='".$text['button-settings']."' onclick=\"document.location.href='voicemail_edit.php?id=".$field['voicemail_uuid']."'\" value='".$text['button-settings']."'>\n";
@@ -137,6 +141,9 @@ if (!(check_str($_REQUEST["action"]) == "download" && check_str($_REQUEST["src"]
 					if ($_SESSION['voicemail']['storage_type']['text'] != 'base64') {
 						echo "<th style='text-align: right;'>".$text['label-message_size']."</th>\n";
 					}
+					if ($_SESSION['voicemail']['transcribe_enabled']['boolean'] == 'true') {
+						echo "<th>".$text['label-transcription']."</th>\n";
+					}
 					if (permission_exists('voicemail_message_delete')) {
 						echo "<td class='list_control_icons' style='width: 25px;'>";
 						echo 	"<a href='javascript:void(0);' onclick=\"if (confirm('".$text['confirm-delete']."')) { $('#frm').attr('action', 'voicemail_message_delete.php').submit(); }\" alt='".$text['button-delete']."'>".$v_link_label_delete."</a>";
@@ -151,7 +158,7 @@ if (!(check_str($_REQUEST["action"]) == "download" && check_str($_REQUEST["src"]
 					$style = ($row['message_status'] == '' && $_REQUEST["uuid"] != $row['voicemail_message_uuid']) ? "font-weight: bold;" : null;
 
 					//playback progress bar
-					echo "<tr id='recording_progress_bar_".$row['voicemail_message_uuid']."' style='display: none;'><td colspan='".((permission_exists('voicemail_message_delete')) ? 7 : 6)."' class='".$row_style[$c]."' style='padding: 0px; border: none;'><span class='playback_progress_bar' id='recording_progress_".$row['voicemail_message_uuid']."'></span></td></tr>\n";
+					echo "<tr id='recording_progress_bar_".$row['voicemail_message_uuid']."' style='display: none;'><td colspan='".((permission_exists('voicemail_message_delete')) ? 7 : 6)."' class='".$row_style[$c]." playback_progress_bar_background' style='padding: 0px; border: none;'><span class='playback_progress_bar' id='recording_progress_".$row['voicemail_message_uuid']."'></span></td></tr>\n";
 
 					$tr_link = "href=\"javascript:recording_play('".$row['voicemail_message_uuid']."');\"";
 					echo "<tr ".$tr_link.">\n";
@@ -177,10 +184,14 @@ if (!(check_str($_REQUEST["action"]) == "download" && check_str($_REQUEST["src"]
 						echo "<a id='recording_button_".$row['voicemail_message_uuid']."' onclick=\"recording_play('".$row['voicemail_message_uuid']."');\" title='".$text['label-play']." / ".$text['label-pause']."'>".$v_link_label_play."</a>";
 						echo "<a href=\"voicemail_messages.php?action=download&t=bin&id=".$row['voicemail_id']."&voicemail_uuid=".$row['voicemail_uuid']."&uuid=".$row['voicemail_message_uuid']."\" title='".$text['label-download']."'>".$v_link_label_download."</a>";
 					echo "	</td>\n";
-					echo "	<td valign='top' class='".$row_style[$c]."' style=\"".$style." text-align: right;\">".$row['message_length_label']."&nbsp;</td>\n";
+					echo "	<td valign='top' class='".$row_style[$c]."' style=\"".$style." text-align: right;\" nowrap='nowrap'>".$row['message_length_label']."&nbsp;</td>\n";
 					if ($_SESSION['voicemail']['storage_type']['text'] != 'base64') {
 						echo "	<td valign='top' class='".$row_style[$c]."' style=\"".$style." text-align: right;\" nowrap='nowrap'>".$row['file_size_label']."</td>\n";
 					}
+					if ($_SESSION['voicemail']['transcribe_enabled']['boolean'] == 'true') {
+						echo "	<td valign='top' class='".$row_style[$c]."' style=\"".$style."\">".$row['message_transcription']."</td>\n";
+					}
+
 					if (permission_exists('voicemail_message_delete')) {
 						echo "	<td class='list_control_icon' style='width: 25px;'>";
 						echo 		"<a href='voicemail_message_delete.php?voicemail_messages[".$row['voicemail_uuid']."][]=".$row['voicemail_message_uuid']."' alt='".$text['button-delete']."' onclick=\"return confirm('".$text['confirm-delete']."')\">".$v_link_label_delete."</a>";
@@ -246,4 +257,5 @@ if (!(check_str($_REQUEST["action"]) == "download" && check_str($_REQUEST["src"]
 
 //include the footer
 	require_once "resources/footer.php";
+
 ?>

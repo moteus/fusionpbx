@@ -17,7 +17,7 @@
 
 	The Initial Developer of the Original Code is
 	Mark J Crane <markjcrane@fusionpbx.com>
-	Copyright (C) 2010 - 2014
+	Copyright (C) 2010 - 2016
 	All Rights Reserved.
 
 	Contributor(s):
@@ -72,13 +72,39 @@ if (!class_exists('extension')) {
 		public $description;
 
 		public function __construct() {
-			require_once "resources/classes/database.php";
-			$this->app_uuid = 'e68d9689-2769-e013-28fa-6214bf47fca3';
+			//connect to the database if not connected
+				if (!$this->db) {
+					require_once "resources/classes/database.php";
+					$database = new database;
+					$database->connect();
+					$this->db = $database->db;
+				}
+
+			//set the application id
+				$this->app_uuid = 'e68d9689-2769-e013-28fa-6214bf47fca3';
 		}
 
 		public function __destruct() {
 			foreach ($this as $key => $value) {
 				unset($this->$key);
+			}
+		}
+
+		public function exists($domain_uuid, $extension) {
+			$sql = "select extension_uuid from v_extensions ";
+			$sql .= "where domain_uuid = :domain_uuid ";
+			$sql .= "and (extension = :extension or number_alias = :extension) ";
+			$sql .= "and enabled = 'true' ";
+			$prep_statement = $this->db->prepare($sql);
+			$prep_statement->bindParam(':domain_uuid', $domain_uuid);
+			$prep_statement->bindParam(':extension', $extension);
+			$prep_statement->execute();
+			$result = $prep_statement->fetchAll(PDO::FETCH_NAMED);
+			if ($result && count($result) > 0) {
+				return true;
+			}
+			else {
+				return false;
 			}
 		}
 
@@ -174,7 +200,7 @@ if (!class_exists('extension')) {
 				//write the xml files
 					$sql = "SELECT * FROM v_extensions AS e, v_voicemails AS v ";
 					$sql .= "WHERE e.domain_uuid = '$domain_uuid' ";
-					$sql .= "AND (e.extension = v.voicemail_id or e.number_alias = v.voicemail_id) ";
+					$sql .= "AND COALESCE(NULLIF(e.number_alias,''),e.extension) = CAST(v.voicemail_id as VARCHAR) ";
 					$sql .= "ORDER BY e.call_group ASC ";
 					$prep_statement = $db->prepare(check_sql($sql));
 					$prep_statement->execute();
@@ -397,7 +423,7 @@ if (!class_exists('extension')) {
 							$xml .= "  </user>\n";
 
 							if (!is_readable($_SESSION['switch']['extensions']['dir']."/".$row['user_context'])) {
-								mkdir($_SESSION['switch']['extensions']['dir']."/".$row['user_context'],02770,true);
+								event_socket_mkdir($_SESSION['switch']['extensions']['dir']."/".$row['user_context']);
 							}
 							if (strlen($extension) > 0) {
 								$fout = fopen($_SESSION['switch']['extensions']['dir']."/".$row['user_context']."/v_".$extension.".xml","w");

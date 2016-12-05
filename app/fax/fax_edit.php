@@ -17,30 +17,25 @@
 
 	The Initial Developer of the Original Code is
 	Mark J Crane <markjcrane@fusionpbx.com>
-	Portions created by the Initial Developer are Copyright (C) 2008-2015
+	Portions created by the Initial Developer are Copyright (C) 2008-2016
 	the Initial Developer. All Rights Reserved.
 
 	Contributor(s):
 	Mark J Crane <markjcrane@fusionpbx.com>
-	Luis Daniel Lucio Quiroz <dlucio@okay.com.mx>
 */
-include "root.php";
-require_once "resources/require.php";
-require_once "resources/check_auth.php";
-if (permission_exists('fax_extension_add') || permission_exists('fax_extension_edit') || permission_exists('fax_extension_delete')) {
-	//access granted
-}
-else {
-	echo "access denied";
-	exit;
-}
 
-//detect billing app
-	$billing_app_exists = file_exists($_SERVER["PROJECT_ROOT"]."/app/billing/app_config.php");
+//includes
+	include "root.php";
+	require_once "resources/require.php";
+	require_once "resources/check_auth.php";
 
-	if ($billing_app_exists) {
-		require_once "app/billing/resources/functions/currency.php";
-		require_once "app/billing/resources/functions/rating.php";
+//check permissions
+	if (permission_exists('fax_extension_add') || permission_exists('fax_extension_edit') || permission_exists('fax_extension_delete')) {
+		//access granted
+	}
+	else {
+		echo "access denied";
+		exit;
 	}
 
 //add multi-lingual support
@@ -64,19 +59,19 @@ else {
 
 		//make sure the directories exist
 			if (!is_dir($_SESSION['switch']['storage']['dir'])) {
-				mkdir($_SESSION['switch']['storage']['dir'],02770,true);
+				event_socket_mkdir($_SESSION['switch']['storage']['dir']);
 			}
 			if (!is_dir($fax_dir.'/'.$fax_extension)) {
-				mkdir($fax_dir.'/'.$fax_extension,02770,true);
+				event_socket_mkdir($fax_dir.'/'.$fax_extension);
 			}
 			if (!is_dir($dir_fax_inbox)) {
-				mkdir($dir_fax_inbox,02770,true);
+				event_socket_mkdir($dir_fax_inbox);
 			}
 			if (!is_dir($dir_fax_sent)) {
-				mkdir($dir_fax_sent,02770,true);
+				event_socket_mkdir($dir_fax_sent);
 			}
 			if (!is_dir($dir_fax_temp)) {
-				mkdir($dir_fax_temp,02770,true);
+				event_socket_mkdir($dir_fax_temp);
 			}
 	}
 
@@ -518,41 +513,17 @@ if (count($_POST)>0 && strlen($_POST["persistformvar"]) == 0) {
 		echo "</td>\n";
 		echo "</tr>\n";
 
-		if (if_group("superadmin") || (if_group("admin") && $billing_app_exists)) {
-			echo "<tr>\n";
-			echo "<td class='vncell' valign='top' align='left' nowrap='nowrap'='nowrap='nowrap''>\n";
-			echo "    ".$text['label-accountcode']."\n";
-			echo "</td>\n";
-			echo "<td class='vtable' align='left'>\n";
-			if ($billing_app_exists) {
-				$sql_accountcode = "SELECT type_value FROM v_billings WHERE domain_uuid = '".$domain_uuid."'";
-				echo "<select name='accountcode' id='accountcode' class='formfld'>\n";
-				$prep_statement_accountcode = $db->prepare(check_sql($sql_accountcode));
-				$prep_statement_accountcode->execute();
-				$result_accountcode = $prep_statement_accountcode->fetchAll(PDO::FETCH_NAMED);
-				foreach ($result_accountcode as &$row_accountcode) {
-					$selected = '';
-					if (($action == "add") && ($row_accountcode['type_value'] == $_SESSION['domain_name'])){
-						$selected='selected="selected"';
-					}
-					elseif ($row_accountcode['type_value'] == $fax_accountcode){
-						$selected='selected="selected"';
-					}
-					echo "<option value=\"".$row_accountcode['type_value']."\" $selected>".$row_accountcode['type_value']."</option>\n";
-				}
-				unset($sql_accountcode, $prep_statement_accountcode, $result_accountcode);
-				echo "</select>";
-			}
-			else {
-				if ($action == "add") { $fax_accountcode = $_SESSION['domain_name']; }
-				echo "<input class='formfld' type='text' name='accountcode' maxlength='255' value=\"".$fax_accountcode."\">\n";
-			}
-
-			echo "<br />\n";
-			echo $text['description-accountcode']."\n";
-			echo "</td>\n";
-			echo "</tr>\n";
-		}
+		echo "<tr>\n";
+		echo "<td class='vncell' valign='top' align='left' nowrap='nowrap'='nowrap='nowrap''>\n";
+		echo "    ".$text['label-accountcode']."\n";
+		echo "</td>\n";
+		echo "<td class='vtable' align='left'>\n";
+		if ($action == "add") { $fax_accountcode = $_SESSION['domain_name']; }
+		echo "	<input class='formfld' type='text' name='accountcode' maxlength='255' value=\"".$fax_accountcode."\">\n";
+		echo "<br />\n";
+		echo $text['description-accountcode']."\n";
+		echo "</td>\n";
+		echo "</tr>\n";
 
 		echo "<tr>\n";
 		echo "<td class='vncell' valign='top' align='left' nowrap='nowrap'>\n";
@@ -747,17 +718,17 @@ if (count($_POST)>0 && strlen($_POST["persistformvar"]) == 0) {
 				echo "</optgroup>\n";
 			}
 		//sounds
-			$dir_path = $_SESSION['switch']['sounds']['dir'];
-			recur_sounds_dir($_SESSION['switch']['sounds']['dir']);
-			if (count($dir_array) > 0) {
+			$file = new file;
+			$sound_files = $file->sounds();
+			if (is_array($sound_files)) {
 				echo "<optgroup label='Sounds'>\n";
-				foreach ($dir_array as $key => $value) {
+				foreach ($sound_files as $value) {
 					if (strlen($value) > 0) {
 						if (substr($fax_send_greeting, 0, 71) == "\$\${sounds_dir}/\${default_language}/\${default_dialect}/\${default_voice}/") {
 							$fax_send_greeting = substr($fax_send_greeting, 71);
 						}
-						$selected = ($fax_send_greeting == $key) ? true : false;
-						echo "	<option value='".$key."' ".(($selected) ? "selected='selected'" : null).">".$key."</option>\n";
+						$selected = ($fax_send_greeting == $value) ? true : false;
+						echo "	<option value='".$value."' ".(($selected) ? "selected='selected'" : null).">".$value."</option>\n";
 						if ($selected) { $tmp_selected = true; }
 					}
 				}

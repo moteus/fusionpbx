@@ -39,20 +39,15 @@
 	if (XML_STRING == "-ERR NOT FOUND") or (XML_STRING == "-ERR CONNECTION FAILURE") then
 
 		--connect to the database
-			require "resources.functions.database_handle";
-			dbh = database_handle('system');
+			local Database = require "resources.functions.database";
+			dbh = Database.new('system');
 
 		--exits the script if we didn't connect properly
 			assert(dbh:connected());
 
 		--get the variables
-			dsn = trim(api:execute("global_getvar", "dsn")) or '';
-			dsn_callcenter = trim(api:execute("global_getvar", "dsn_callcenter")) or '';
-
-			if dsn:find("INVALID COMMAND", nil, true) then
-				freeswitch.consoleLog('err', '[xml_handler] Can not correctly load mod_callcenter becase mod_commands not loaded\n')
-				dsn, dsn_callcenter = '', ''
-			end
+			dsn = freeswitch.getGlobalVariable("dsn") or ''
+			dsn_callcenter = freeswitch.getGlobalVariable("dsn_callcenter") or ''
 
 		--start the xml array
 			local xml = {}

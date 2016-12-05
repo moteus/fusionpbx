@@ -64,6 +64,8 @@
 		$apps[$x]['permissions'][$y]['groups'][] = "admin";
 		$apps[$x]['permissions'][$y]['groups'][] = "user";
 		$y++;
+		$apps[$x]['permissions'][$y]['name'] = "voicemail_sms_edit";
+		$y++;
 
 	//schema details
 		$y = 0; //table array index
@@ -95,9 +97,17 @@
 		$apps[$x]['db'][$y]['fields'][$z]['type'] = "numeric";
 		$apps[$x]['db'][$y]['fields'][$z]['description']['en-us'] = "Select the greeting id.";
 		$z++;
+		$apps[$x]['db'][$y]['fields'][$z]['name'] = "voicemail_alternate_greet_id";
+		$apps[$x]['db'][$y]['fields'][$z]['type'] = "numeric";
+		$apps[$x]['db'][$y]['fields'][$z]['description']['en-us'] = "Used to provide an alternate id for the voicemail announcement.";
+		$z++;
 		$apps[$x]['db'][$y]['fields'][$z]['name'] = "voicemail_mail_to";
 		$apps[$x]['db'][$y]['fields'][$z]['type'] = "text";
 		$apps[$x]['db'][$y]['fields'][$z]['description']['en-us'] = "Enter the email address to send voicemail to.";
+		$z++;
+		$apps[$x]['db'][$y]['fields'][$z]['name'] = "voicemail_sms_to";
+		$apps[$x]['db'][$y]['fields'][$z]['type'] = "text";
+		$apps[$x]['db'][$y]['fields'][$z]['description']['en-us'] = "Enter the sms did to send voicemail to.";
 		$z++;
 		$apps[$x]['db'][$y]['fields'][$z]['name'] = "voicemail_attach_file";
 		$apps[$x]['db'][$y]['fields'][$z]['type'] = "text";
@@ -175,9 +185,18 @@
 		$apps[$x]['db'][$y]['fields'][$z]['type'] = "text";
 		$apps[$x]['db'][$y]['fields'][$z]['description']['en-us'] = "Voicemail message priority.";
 		$z++;
+		$apps[$x]['db'][$y]['fields'][$z]['name'] = "message_intro_base64";
+		$apps[$x]['db'][$y]['fields'][$z]['type'] = "text";
+		$apps[$x]['db'][$y]['fields'][$z]['description']['en-us'] = "Voicemail intro encoded in base64.";
+		$z++;
+		$z++;
 		$apps[$x]['db'][$y]['fields'][$z]['name'] = "message_base64";
 		$apps[$x]['db'][$y]['fields'][$z]['type'] = "text";
 		$apps[$x]['db'][$y]['fields'][$z]['description']['en-us'] = "Voicemail file encoded in base64.";
+		$z++;
+		$apps[$x]['db'][$y]['fields'][$z]['name'] = "message_transcription";
+		$apps[$x]['db'][$y]['fields'][$z]['type'] = "text";
+		$apps[$x]['db'][$y]['fields'][$z]['description']['en-us'] = "Voicemail transcription.";
 		$z++;
 
 		$y = 2; //table array index

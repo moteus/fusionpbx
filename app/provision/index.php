@@ -24,10 +24,13 @@
 	Luis Daniel Lucio Quiroz <dlucio@okay.com.mx>
 */
 
-include "root.php";
-require_once "resources/require.php";
-require_once "resources/functions/device_by.php";
-openlog("fusion-provisioning", LOG_PID | LOG_PERROR, LOG_LOCAL0);
+//includes
+	include "root.php";
+	require_once "resources/require.php";
+	require_once "resources/functions/device_by.php";
+
+//logging
+	openlog("fusion-provisioning", LOG_PID | LOG_PERROR, LOG_LOCAL0);
 
 //set default variables
 	$dir_count = 0;
@@ -54,10 +57,8 @@ openlog("fusion-provisioning", LOG_PID | LOG_PERROR, LOG_LOCAL0);
 	}
 
 // Escence make request based on UserID for Memory keys
-/*
-The file name is fixed to `Account1_Extern.xml`.
-(Account1 is the first account you register)
-*/
+	// The file name is fixed to `Account1_Extern.xml`.
+	// (Account1 is the first account you register)
 	if(empty($mac) && !empty($ext)){
 		$domain_array = explode(":", $_SERVER["HTTP_HOST"]);
 		$domain_name = $domain_array[0];
@@ -84,7 +85,7 @@ The file name is fixed to `Account1_Extern.xml`.
 	}
 
 //prepare the mac address
-	if (isset($_REQUEST['mac'])) {
+	if (isset($mac)) {
 		//normalize the mac address to lower case
 			$mac = strtolower($mac);
 		//replace all non hexadecimal values and validate the mac address
@@ -223,7 +224,9 @@ The file name is fixed to `Account1_Extern.xml`.
 	foreach($_SESSION['provision'] as $key=>$val) {
 		if (strlen($val['var']) > 0) { $value = $val['var']; }
 		if (strlen($val['text']) > 0) { $value = $val['text']; }
-		$provision[$key] = $value;
+		if (strlen($val['boolean']) > 0) { $value = $val['boolean']; }
+		if (strlen($val['numeric']) > 0) { $value = $val['numeric']; }
+		if (strlen($value) > 0) { $provision[$key] = $value; }
 		unset($value);
 	}
 
@@ -365,6 +368,22 @@ The file name is fixed to `Account1_Extern.xml`.
 		}
 	}
 
+//register that we have seen the device
+	$sql = "UPDATE v_devices "; 
+	$sql .= "SET device_provisioned_date=:date, device_provisioned_method=:method, device_provisioned_ip=:ip ";
+	$sql .= "WHERE domain_uuid=:domain_uuid AND device_mac_address=:mac ";
+	$prep_statement = $db->prepare(check_sql($sql));
+	if ($prep_statement) {
+		//use the prepared statement
+			$prep_statement->bindValue(':domain_uuid', $domain_uuid);
+			$prep_statement->bindValue(':mac', strtolower($mac));
+			$prep_statement->bindValue(':date', date("Y-m-d H:i:s"));
+			$prep_statement->bindValue(':method', (isset($_SERVER["HTTPS"]) ? 'https' : 'http'));
+			$prep_statement->bindValue(':ip', $_SERVER['REMOTE_ADDR']);
+			$prep_statement->execute();
+			unset($prep_statement);
+	}
+	
 //output template to string for header processing
 	$prov = new provision;
 	$prov->domain_uuid = $domain_uuid;

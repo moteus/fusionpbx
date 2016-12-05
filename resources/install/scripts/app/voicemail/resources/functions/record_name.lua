@@ -43,9 +43,6 @@
 
 			--record and save the file
 				if (storage_type == "base64") then
-					--include the base64 function
-						require "resources.functions.base64";
-
 					--set the location
 						voicemail_name_location = voicemail_dir.."/"..voicemail_id.."/recorded_name.wav";
 
@@ -58,29 +55,28 @@
 						freeswitch.consoleLog("notice", "[recordings] ".. storage_type .. "\n");
 
 					--base64 encode the file
-						local f = io.open(voicemail_name_location, "rb");
-						local file_content = f:read("*all");
-						f:close();
-						voicemail_name_base64 = base64.encode(file_content);
+						--include the file io
+							local file = require "resources.functions.file"
+
+						--read file content as base64 string
+							voicemail_name_base64 = assert(file.read_base64(voicemail_name_location));
 
 					--update the voicemail name
-						sql = "UPDATE v_voicemails ";
-						sql = sql .. "set voicemail_name_base64 = '".. voicemail_name_base64 .. "' ";
-						sql = sql .. "where domain_uuid = '".. domain_uuid .. "' ";
-						sql = sql .. "and voicemail_id = '".. voicemail_id .."'";
+						local sql = "UPDATE v_voicemails ";
+						sql = sql .. "set voicemail_name_base64 = :voicemail_name_base64 ";
+						sql = sql .. "where domain_uuid = :domain_uuid ";
+						sql = sql .. "and voicemail_id = :voicemail_id";
+						local params = {voicemail_name_base64 = voicemail_name_base64,
+							domain_uuid = domain_uuid, voicemail_id = voicemail_id};
 						if (debug["sql"]) then
-							freeswitch.consoleLog("notice", "[recording] SQL: " .. sql .. "\n");
+							freeswitch.consoleLog("notice", "[recording] SQL: " .. sql .. "; params:" .. json.encode(params) .. "\n");
 						end
 						if (storage_type == "base64") then
-							array = explode("://", database["system"]);
-							local luasql = require "luasql.postgres";
-							local env = assert (luasql.postgres());
-							local dbh = env:connect(array[2]);
-							res, serr = dbh:execute(sql);
-							dbh:close();
-							env:close();
+							local dbh = Database.new('system', 'base64');
+							dbh:query(sql, params);
+							dbh:release();
 						else
-							dbh:query(sql);
+							dbh:query(sql, params);
 						end
 				elseif (storage_type == "http_cache") then
 					freeswitch.consoleLog("notice", "[voicemail] ".. storage_type .. " ".. storage_path .."\n");

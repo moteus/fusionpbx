@@ -31,7 +31,8 @@ if (!class_exists('ringbacks')) {
 		//define variables
 		public $db;
 		private $ringbacks;
-		private $moh_list;
+		private $tones_list;
+		private $music_list;
 		private $recordings_list;
 		private $default_ringback_label;
 		
@@ -51,8 +52,7 @@ if (!class_exists('ringbacks')) {
 
 			//get the ringback types
 				$sql = "select * from v_vars ";
-				$sql .= "where var_cat = 'Defaults' ";
-				$sql .= "and var_name LIKE '%-ring' ";
+				$sql .= "where var_cat = 'Ringtones' ";
 				$sql .= "order by var_name asc ";
 				$prep_statement = $this->db->prepare(check_sql($sql));
 				$prep_statement->execute();
@@ -70,6 +70,7 @@ if (!class_exists('ringbacks')) {
 				unset($ringback_list);
 			
 			//get the default_ringback label
+				/*
 				$sql = "select * from v_vars where var_name = 'ringback' ";
 				$prep_statement = $this->db->prepare(check_sql($sql));
 				$prep_statement->execute();
@@ -84,12 +85,18 @@ if (!class_exists('ringbacks')) {
 				#}
 				$this->default_ringback_label = $label;
 				unset($results, $default_ringback, $label);
+				*/
 
+			//get the tones
+					require_once "resources/classes/tones.php";
+					$tones = new tones;
+					$this->tones_list = $tones->tones_list();
+				
 			//get music on hold	and recordings
 				if (is_dir($_SERVER["PROJECT_ROOT"].'/app/music_on_hold')) {
 					require_once "app/music_on_hold/resources/classes/switch_music_on_hold.php";
-					$moh = new switch_music_on_hold;
-					$this->moh_list = $moh->list_moh();
+					$music = new switch_music_on_hold;
+					$this->music_list = $music->get();
 				}
 				if (is_dir($_SERVER["PROJECT_ROOT"].'/app/recordings')) {
 					require_once "app/recordings/resources/classes/switch_recordings.php";
@@ -106,11 +113,20 @@ if (!class_exists('ringbacks')) {
 			//start the select
 				$select = "<select class='formfld' name='".$name."' id='".$name."' style='width: auto;'>\n";
 
-			//moh
-				if (sizeof($this->moh_list) > 0) {
-					$select .= "	<optgroup label='".$text['label-music_on_hold']."'>";
-					foreach($this->moh_list as $moh_value => $moh_name) {
-						$select .= "		<option value='".$moh_value."' ".(($selected == $moh_value) ? 'selected="selected"' : '').">".$moh_name."</option>\n";
+			//music list
+				if (count($this->music_list) > 0) {
+					$select .= "	<optgroup label='".$text['label-music_on_hold']."'>\n";
+					$previous_name = '';
+					foreach($this->music_list as $row) {
+						if ($previous_name != $row['music_on_hold_name']) {
+							$name = '';
+							if (strlen($row['domain_uuid']) > 0) {
+								$name = $row['domain_name'].'/';	
+							}
+							$name .= $row['music_on_hold_name'];
+							$select .= "		<option value='local_stream://".$name."' ".(($selected == "local_stream://".$name) ? 'selected="selected"' : null).">".$row['music_on_hold_name']."</option>\n";
+						}
+						$previous_name = $row['music_on_hold_name'];
 					}
 					$select .= "	</optgroup>\n";
 				}
@@ -130,12 +146,25 @@ if (!class_exists('ringbacks')) {
 					$selected_ringback = preg_replace('/\A\${/',"",$selected_ringback);
 					$selected_ringback = preg_replace('/}\z/',"",$selected_ringback);
 					$select .= "	<optgroup label='".$text['label-ringback']."'>";
-					$select .= "		<option value='default_ringback'".(($selected == "default_ringback") ? ' selected="selected"' : '').">".$text['label-default']." (".$this->default_ringback_label.")</option>\n";
+					//$select .= "		<option value='default_ringback'".(($selected == "default_ringback") ? ' selected="selected"' : '').">".$text['label-default']." (".$this->default_ringback_label.")</option>\n";
 					foreach($this->ringbacks as $ringback_value => $ringback_name) {
 						$select .= "		<option value='\${".$ringback_value."}'".(($selected_ringback == $ringback_value) ? ' selected="selected"' : '').">".$ringback_name."</option>\n";
 					}
 					$select .= "	</optgroup>\n";
 					unset($selected_ringback);
+				}
+
+			//tones
+				if (sizeof($this->tones_list) > 0) {
+					$selected_tone = $selected;
+					$selected_tone = preg_replace('/\A\${/',"",$selected_tone);
+					$selected_tone = preg_replace('/}\z/',"",$selected_tone);
+					$select .= "	<optgroup label='".$text['label-tone']."'>";
+					foreach($this->tones_list as $tone_value => $tone_name) {
+						$select .= "		<option value='\${".$tone_value."}'".(($selected_tone == $tone_value) ? ' selected="selected"' : '').">".$tone_name."</option>\n";
+					}
+					$select .= "	</optgroup>\n";
+					unset($selected_tone);
 				}
 
 			//end the select and return it

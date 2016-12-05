@@ -79,9 +79,8 @@
 //includes
 	require('resources/pop3/mime_parser.php');
 	require('resources/pop3/rfc822_addresses.php');
-	
-	if (file_exists($_SERVER["PROJECT_ROOT"]."/app/emails/email_translation.php")) {
-		require_once($_SERVER["PROJECT_ROOT"]."/app/emails/email_translation.php");
+	if (file_exists($_SERVER["PROJECT_ROOT"]."/app/emails/email_transcription.php")) {
+		require_once($_SERVER["PROJECT_ROOT"]."/app/emails/email_transcription.php");
 	}
 
 //parse the email message
@@ -190,6 +189,22 @@
 			default: $mail->IsSMTP(); break;
 		}
 	} else $mail->IsSMTP();
+
+// optional bypass TLS certificate check e.g. for self-signed certificates
+    if (isset($_SESSION['email']['smtp_validate_certificate'])) {
+            if ($_SESSION['email']['smtp_validate_certificate']['boolean'] == "false") {
+
+                    // this is needed to work around TLS certificate problems
+                    $mail->SMTPOptions = array(
+                            'ssl' => array(
+                            'verify_peer' => false,
+                            'verify_peer_name' => false,
+                            'allow_self_signed' => true
+                            )
+                    );
+            }
+    }
+
 	$mail->SMTPAuth = $smtp['auth'];
 	$mail->Host = $smtp['host'];
 	if ($smtp['port']!=0) $mail->Port=$smtp['port'];
@@ -287,8 +302,8 @@
 				//add an attachment
 					$mail->AddStringAttachment($parts_array["Body"],$file,$encoding,$mime_type);
 					if (function_exists(get_transcription)) {
-						$attachments_array=$mail->GetAttachments();
-						$transcription=get_transcription($attachments_array[0]);
+						$attachments_array = $mail->GetAttachments();
+						$transcription = get_transcription($attachments_array[0]);
 						echo "Transcription: " . $transcription;
 					} else {
 						$transcription = '';
