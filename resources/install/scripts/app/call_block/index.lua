@@ -96,8 +96,8 @@ This method causes the script to get its manadatory arguments directly from the 
 	--if not cached then get the information from the database
 	if not cached then
 		--connect to the database
-			require "resources.functions.database_handle";
-			dbh = database_handle('system');
+			Database = require "resources.functions.database";
+			dbh = Database.new('system');
 
 		--log if not connect
 			if dbh:connected() == false then
@@ -106,14 +106,14 @@ This method causes the script to get its manadatory arguments directly from the 
 			end
 
 		--check if the the call block is blocked
-			sql = "SELECT * FROM v_call_block as c "
+			local sql = "SELECT * FROM v_call_block as c "
 			sql = sql .. "JOIN v_domains as d ON c.domain_uuid=d.domain_uuid "
-			sql = sql .. "WHERE d.domain_name = '" .. params["domain_name"] .."' AND("
-			sql = sql .. "(c.call_block_number = '" .. params["cid_num"] .. "' AND "
+			sql = sql .. "WHERE d.domain_name = :domain_name AND("
+			sql = sql .. "(c.call_block_number = :cid_num AND "
 			sql = sql .. "(c.call_block_number_type <> 'called' or c.call_block_number_type is NULL)) OR"
-			sql = sql .. "(c.call_block_number = '" .. params["called_num"] .. "' AND c.call_block_number_type = 'called'))"
+			sql = sql .. "(c.call_block_number = :called_num AND c.call_block_number_type = 'called'))"
 
-			status = dbh:query(sql, function(rows)
+			status = dbh:query(sql, params, function(rows)
 				found_cid_num = rows["call_block_number"];
 				found_num_type = rows["call_block_number_type"];
 				found_uuid = rows["call_block_uuid"];
@@ -182,7 +182,9 @@ This method causes the script to get its manadatory arguments directly from the 
 			k = k + 1
 		end
 		if (source == "database") then
-			dbh:query("UPDATE v_call_block SET call_block_count = " .. found_count + 1 .. " WHERE call_block_uuid = '" .. found_uuid .. "'")
+				dbh:query("UPDATE v_call_block SET call_block_count = :call_block_count WHERE call_block_uuid = :call_block_uuid",{
+					call_block_count = found_count + 1, call_block_uuid = found_uuid
+				})
 		end
 		session:execute("set", "call_blocked=true");
 		logger("W", "NOTICE", "number " .. found_cid_num .. " blocked with " .. found_count .. " previous hits, domain_name: " .. params["domain_name"] .. " [" .. source .. "]")

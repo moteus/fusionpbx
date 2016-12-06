@@ -281,6 +281,8 @@ include "root.php";
 				foreach($_SESSION['provision'] as $key=>$val) {
 					if (strlen($val['var']) > 0) { $value = $val['var']; }
 					if (strlen($val['text']) > 0) { $value = $val['text']; }
+					if (strlen($val['boolean']) > 0) { $value = $val['boolean']; }
+					if (strlen($val['numeric']) > 0) { $value = $val['numeric']; }
 					if (strlen($value) > 0) { $provision[$key] = $value; }
 					unset($value);
 				}
@@ -470,6 +472,23 @@ include "root.php";
 						}
 					}
 					unset($prep_statement_3);
+				}
+
+			//get the device settings table in the provision category from the profile and update the provision array
+				if ((strlen($device_uuid) > 0) and (strlen($device_profile_uuid) > 0)) {
+					$sql = "SELECT * FROM v_device_settings ";
+					$sql .= "WHERE device_profile_uuid = '".$device_profile_uuid."' ";
+					$sql .= "AND device_setting_enabled = 'true' ";
+					$prep_statement = $this->db->prepare(check_sql($sql));
+					$prep_statement->execute();
+					$result = $prep_statement->fetchAll(PDO::FETCH_NAMED);
+					$result_count = count($result);
+					foreach($result as $row) {
+						$key = $row['device_setting_subcategory'];
+						$value = $row['device_setting_value'];
+						$provision[$key] = $value;
+					}
+					unset ($prep_statement);
 				}
 
 			//get the device settings table in the provision category and update the provision array
@@ -734,17 +753,21 @@ include "root.php";
 
 				//update the device keys by replacing variables with their values
 					foreach($variables as $name => $value) {
-						foreach($device_keys as $k => $field) {
-							if (strlen($field['device_key_uuid']) > 0) {
-									$device_keys[$k]['device_key_value'] = str_replace("\${".$name."}", $value, $field['device_key_value']);
-									$device_keys[$k]['device_key_extension'] = str_replace("\${".$name."}", $value, $field['device_key_extension']);
-									$device_keys[$k]['device_key_label'] = str_replace("\${".$name."}", $value, $field['device_key_label']);
-							}
-							else {
-								foreach($field as $key => $row) {
-									$device_keys[$k][$key]['device_key_value'] = str_replace("\${".$name."}", $value, $row['device_key_value']);
-									$device_keys[$k][$key]['device_key_extension'] = str_replace("\${".$name."}", $value, $row['device_key_extension']);
-									$device_keys[$k][$key]['device_key_label'] = str_replace("\${".$name."}", $value, $row['device_key_label']);
+						if (is_array($device_keys)) {
+							foreach($device_keys as $k => $field) {
+								if (strlen($field['device_key_uuid']) > 0) {
+										$device_keys[$k]['device_key_value'] = str_replace("\${".$name."}", $value, $field['device_key_value']);
+										$device_keys[$k]['device_key_extension'] = str_replace("\${".$name."}", $value, $field['device_key_extension']);
+										$device_keys[$k]['device_key_label'] = str_replace("\${".$name."}", $value, $field['device_key_label']);
+								}
+								else {
+									if (is_array($field)) {
+										foreach($field as $key => $row) {
+											$device_keys[$k][$key]['device_key_value'] = str_replace("\${".$name."}", $value, $row['device_key_value']);
+											$device_keys[$k][$key]['device_key_extension'] = str_replace("\${".$name."}", $value, $row['device_key_extension']);
+											$device_keys[$k][$key]['device_key_label'] = str_replace("\${".$name."}", $value, $row['device_key_label']);
+										}
+									}
 								}
 							}
 						}
@@ -756,76 +779,78 @@ include "root.php";
 				//set the variables
 					$types = array("line", "memory", "expansion", "programmable");
 					foreach ($types as $type) {
-						foreach($device_keys[$type] as $row) {
-							//set the variables
-								$device_key_category = $row['device_key_category'];
-								$device_key_id = $row['device_key_id']; //1
-								$device_key_type = $row['device_key_type']; //line
-								$device_key_line = $row['device_key_line'];
-								$device_key_value = $row['device_key_value']; //1
-								$device_key_extension = $row['device_key_extension'];
-								$device_key_label = $row['device_key_label']; //label
-	
-							//add general variables
-								$device_key_value = str_replace("\${domain_name}", $domain_name, $device_key_value);
-								$device_key_extension = str_replace("\${domain_name}", $domain_name, $device_key_extension);
-								$device_key_label = str_replace("\${domain_name}", $domain_name, $device_key_label);
-	
-							//grandstream modes are different based on the category
-								if ($device_vendor == "grandstream") {
-									if ($device_key_category == "line") {
-										switch ($device_key_type) {
-											case "line": $device_key_type  = "0"; break;
-											case "shared line": $device_key_type  = "1"; break;
-											case "speed dial": $device_key_type  = "10"; break;
-											case "blf": $device_key_type  = "11"; break;
-											case "presence watcher": $device_key_type  = "12"; break;
-											case "eventlist blf": $device_key_type  = "13"; break;
-											case "speed dial active": $device_key_type  = "14"; break;
-											case "dial dtmf": $device_key_type  = "15"; break;
-											case "voicemail": $device_key_type  = "16"; break;
-											case "call return": $device_key_type  = "17"; break;
-											case "transfer": $device_key_type  = "18"; break;
-											case "call park": $device_key_type  = "19"; break;
-											case "intercom": $device_key_type  = "20"; break;
-											case "ldap search": $device_key_type  = "21"; break;
+						if (is_array($device_keys[$type])) {
+							foreach($device_keys[$type] as $row) {
+								//set the variables
+									$device_key_category = $row['device_key_category'];
+									$device_key_id = $row['device_key_id']; //1
+									$device_key_type = $row['device_key_type']; //line
+									$device_key_line = $row['device_key_line'];
+									$device_key_value = $row['device_key_value']; //1
+									$device_key_extension = $row['device_key_extension'];
+									$device_key_label = $row['device_key_label']; //label
+
+								//add general variables
+									$device_key_value = str_replace("\${domain_name}", $domain_name, $device_key_value);
+									$device_key_extension = str_replace("\${domain_name}", $domain_name, $device_key_extension);
+									$device_key_label = str_replace("\${domain_name}", $domain_name, $device_key_label);
+
+								//grandstream modes are different based on the category
+									if ($device_vendor == "grandstream") {
+										if ($device_key_category == "line") {
+											switch ($device_key_type) {
+												case "line": $device_key_type  = "0"; break;
+												case "shared line": $device_key_type  = "1"; break;
+												case "speed dial": $device_key_type  = "10"; break;
+												case "blf": $device_key_type  = "11"; break;
+												case "presence watcher": $device_key_type  = "12"; break;
+												case "eventlist blf": $device_key_type  = "13"; break;
+												case "speed dial active": $device_key_type  = "14"; break;
+												case "dial dtmf": $device_key_type  = "15"; break;
+												case "voicemail": $device_key_type  = "16"; break;
+												case "call return": $device_key_type  = "17"; break;
+												case "transfer": $device_key_type  = "18"; break;
+												case "call park": $device_key_type  = "19"; break;
+												case "intercom": $device_key_type  = "20"; break;
+												case "ldap search": $device_key_type  = "21"; break;
+											}
+										}
+										if ($device_key_category == "memory" || $device_key_category == "expansion") {
+											switch ($device_key_type) {
+												case "speed dial": $device_key_type  = "0"; break;
+												case "blf": $device_key_type  = "1"; break;
+												case "presence watcher": $device_key_type  = "2"; break;
+												case "eventlist blf": $device_key_type  = "3"; break;
+												case "speed dial active": $device_key_type  = "4"; break;
+												case "dial dtmf": $device_key_type  = "5"; break;
+												case "voicemail": $device_key_type  = "6"; break;
+												case "call return": $device_key_type  = "7"; break;
+												case "transfer": $device_key_type  = "8"; break;
+												case "call park": $device_key_type  = "9"; break;
+												case "intercom": $device_key_type  = "10"; break;
+												case "ldap search": $device_key_type  = "11"; break;
+											}
 										}
 									}
-									if ($device_key_category == "memory" || $device_key_category == "expansion") {
-										switch ($device_key_type) {
-											case "speed dial": $device_key_type  = "0"; break;
-											case "blf": $device_key_type  = "1"; break;
-											case "presence watcher": $device_key_type  = "2"; break;
-											case "eventlist blf": $device_key_type  = "3"; break;
-											case "speed dial active": $device_key_type  = "4"; break;
-											case "dial dtmf": $device_key_type  = "5"; break;
-											case "voicemail": $device_key_type  = "6"; break;
-											case "call return": $device_key_type  = "7"; break;
-											case "transfer": $device_key_type  = "8"; break;
-											case "call park": $device_key_type  = "9"; break;
-											case "intercom": $device_key_type  = "10"; break;
-											case "ldap search": $device_key_type  = "11"; break;
-										}
+
+								//assign the variables
+									if (strlen($device_key_category) == 0) {
+										$view->assign("key_id_".$device_key_id, $device_key_id);
+										$view->assign("key_type_".$device_key_id, $device_key_type);
+										$view->assign("key_line_".$device_key_id, $device_key_line);
+										$view->assign("key_value_".$device_key_id, $device_key_value);
+										$view->assign("key_extension_".$device_key_id, $device_key_extension);
+										$view->assign("key_label_".$device_key_id, $device_key_label);
 									}
-								}
-	
-							//assign the variables
-								if (strlen($device_key_category) == 0) {
-									$view->assign("key_id_".$device_key_id, $device_key_id);
-									$view->assign("key_type_".$device_key_id, $device_key_type);
-									$view->assign("key_line_".$device_key_id, $device_key_line);
-									$view->assign("key_value_".$device_key_id, $device_key_value);
-									$view->assign("key_extension_".$device_key_id, $device_key_extension);
-									$view->assign("key_label_".$device_key_id, $device_key_label);
-								}
-								else {
-									$view->assign($device_key_category."_key_id_".$device_key_id, $device_key_id);
-									$view->assign($device_key_category."_key_type_".$device_key_id, $device_key_type);
-									$view->assign($device_key_category."_key_line_".$device_key_id, $device_key_line);
-									$view->assign($device_key_category."_key_value_".$device_key_id, $device_key_value);
-									$view->assign($device_key_category."_key_extension_".$device_key_id, $device_key_extension);
-									$view->assign($device_key_category."_key_label_".$device_key_id, $device_key_label);
-								}
+									else {
+										$view->assign($device_key_category."_key_id_".$device_key_id, $device_key_id);
+										$view->assign($device_key_category."_key_type_".$device_key_id, $device_key_type);
+										$view->assign($device_key_category."_key_line_".$device_key_id, $device_key_line);
+										$view->assign($device_key_category."_key_value_".$device_key_id, $device_key_value);
+										$view->assign($device_key_category."_key_extension_".$device_key_id, $device_key_extension);
+										$view->assign($device_key_category."_key_label_".$device_key_id, $device_key_label);
+									}
+							}
 						}
 					}
 					unset ($prep_statement);
@@ -943,6 +968,8 @@ include "root.php";
 				foreach($_SESSION['provision'] as $key=>$val) {
 					if (strlen($val['var']) > 0) { $value = $val['var']; }
 					if (strlen($val['text']) > 0) { $value = $val['text']; }
+					if (strlen($val['boolean']) > 0) { $value = $val['boolean']; }
+					if (strlen($val['numeric']) > 0) { $value = $val['numeric']; }
 					if (strlen($value) > 0) { $provision[$key] = $value; }
 					unset($value);
 				}

@@ -3,6 +3,7 @@
 --
 
 local log  = require "resources.functions.log".database
+local utils = require "resources.functions.database.utils"
 local odbc = require "odbc.dba"
 
 local function remove_null(row, null, null_value)
@@ -34,20 +35,32 @@ function OdbcDatabase.new(name)
   return self
 end
 
-function OdbcDatabase:query(sql, fn)
+function OdbcDatabase:_query(sql, params, fn)
   self._rows_affected = nil
+  params = params or {}
   if fn then
-    return self._dbh:neach(sql, function(row)
+    return self._dbh:neach(sql, params, function(row)
       local n = tonumber((fn(remove_null(row, odbc.NULL, ""))))
       if n and n ~= 0 then
         return true
       end
     end)
   end
-  local ok, err = self._dbh:exec(sql)
+  local ok, err = self._dbh:exec(sql, params)
   if not ok then return nil, err end
   self._rows_affected = ok
   return self._rows_affected
+end
+
+function OdbcDatabase:query(sql, fn)
+  return OdbcDatabase._query(self, sql, nil, fn)
+end
+
+function OdbcDatabase:parameter_query(sql, params, fn)
+  sql, params = utils.apply_params(self, sql, params)
+  if not sql then return nil, params end
+
+  return OdbcDatabase._query(self, sql, params, fn)
 end
 
 function OdbcDatabase:affected_rows()
@@ -63,6 +76,10 @@ end
 
 function OdbcDatabase:connected()
   return self._dbh and self._dbh:connected()
+end
+
+function OdbcDatabase:dbtype()
+  return 'odbc'
 end
 
 end

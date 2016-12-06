@@ -29,11 +29,19 @@ if ($domains_processed == 1) {
 
 	//define array of settings
 		$x = 0;
-		$array[$x]['default_setting_uuid'] = 'c55b28df-0eba-4e8f-a13b-022d5dfd8d22';
+		$array[$x]['default_setting_uuid'] = '3bcb4912-e34c-45b0-8612-662783ee8d1b';
+		$array[$x]['default_setting_category'] = 'server';
+		$array[$x]['default_setting_subcategory'] = 'temp';
+		$array[$x]['default_setting_name'] = 'dir';
+		$array[$x]['default_setting_value'] = sys_get_temp_dir();
+		$array[$x]['default_setting_enabled'] = 'true';
+		$array[$x]['default_setting_description'] = '';
+		$x++;
+		$array[$x]['default_setting_uuid'] = 'f1a7c2d4-ba3c-49c8-9146-e40eb8873030';
 		$array[$x]['default_setting_category'] = 'domain';
-		$array[$x]['default_setting_subcategory'] = 'time_zone';
+		$array[$x]['default_setting_subcategory'] = 'template';
 		$array[$x]['default_setting_name'] = 'name';
-		$array[$x]['default_setting_value'] = '';
+		$array[$x]['default_setting_value'] = 'default';
 		$array[$x]['default_setting_enabled'] = 'true';
 		$array[$x]['default_setting_description'] = '';
 		$x++;
@@ -42,6 +50,22 @@ if ($domains_processed == 1) {
 		$array[$x]['default_setting_subcategory'] = 'language';
 		$array[$x]['default_setting_name'] = 'code';
 		$array[$x]['default_setting_value'] = 'en-us';
+		$array[$x]['default_setting_enabled'] = 'true';
+		$array[$x]['default_setting_description'] = '';
+		$x++;
+		$array[$x]['default_setting_uuid'] = 'c55b28df-0eba-4e8f-a13b-022d5dfd8d22';
+		$array[$x]['default_setting_category'] = 'domain';
+		$array[$x]['default_setting_subcategory'] = 'time_zone';
+		$array[$x]['default_setting_name'] = 'name';
+		$array[$x]['default_setting_value'] = '';
+		$array[$x]['default_setting_enabled'] = 'true';
+		$array[$x]['default_setting_description'] = '';
+		$x++;
+		$array[$x]['default_setting_uuid'] = 'f1a7c2d4-ba3c-49c8-9146-e40eb8873030';
+		$array[$x]['default_setting_category'] = 'domain';
+		$array[$x]['default_setting_subcategory'] = 'country';
+		$array[$x]['default_setting_name'] = 'code';
+		$array[$x]['default_setting_value'] = 'us';
 		$array[$x]['default_setting_enabled'] = 'true';
 		$array[$x]['default_setting_description'] = '';
 		$x++;
@@ -58,7 +82,7 @@ if ($domains_processed == 1) {
 		$array[$x]['default_setting_subcategory'] = 'paging';
 		$array[$x]['default_setting_name'] = 'numeric';
 		$array[$x]['default_setting_value'] = '100';
-		$array[$x]['default_setting_enabled'] = 'false';
+		$array[$x]['default_setting_enabled'] = 'true';
 		$array[$x]['default_setting_description'] = 'Set the maximum number of records displayed per page. (Default: 50)';
 		$x++;
 		$array[$x]['default_setting_uuid'] = '57d81b35-bc24-4e92-8436-4335ab5e9d0b';
@@ -192,7 +216,7 @@ if ($domains_processed == 1) {
 		$array[$x]['default_setting_uuid'] = 'e1c17089-1e75-4e46-9e59-4748bb6a6cec';
 		$array[$x]['default_setting_category'] = 'email';
 		$array[$x]['default_setting_subcategory'] = 'smtp_validate_certificate';
-		$array[$x]['default_setting_name'] = 'bolean';
+		$array[$x]['default_setting_name'] = 'boolean';
 		$array[$x]['default_setting_value'] = 'true';
 		$array[$x]['default_setting_enabled'] = 'true';
 		$array[$x]['default_setting_description'] = 'set to false to ignore SSL certificate warnings e.g. for self-signed certificates';

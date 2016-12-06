@@ -134,6 +134,18 @@ $text['message-restore']['ro'] = "";
 $text['message-restore']['de-at'] = "Widerherstellung durchgeführt";
 $text['message-restore']['he'] = "שחזור הושלם";
 
+$text['message-duplicate']['en-us'] = "Duplicate Detected";
+$text['message-duplicate']['es-cl'] = "duplicar detectado";
+$text['message-duplicate']['pt-pt'] = "Detectado um duplicado";
+$text['message-duplicate']['fr-fr'] = "Donblons détectés";
+$text['message-duplicate']['pt-br'] = "Detectado uma dubplicidade";
+$text['message-duplicate']['pl'] = "Wykryto duplikat";
+$text['message-duplicate']['uk'] = "Знайдено дублікат";
+$text['message-duplicate']['sv-se'] = "Dubblett Upptäckt";
+$text['message-duplicate']['ro'] = "";
+$text['message-duplicate']['de-at'] = "bereits vorhanden";
+$text['message-duplicate']['ar-eg'] = "";
+$text['message-duplicate']['he'] = "זוהותה כפילות";
 
 //misc
 
@@ -800,6 +812,26 @@ $text['label-default']['de-at'] = "Default";
 $text['label-default']['he'] = "Default";
 $text['label-default']['ar-eg'] = "בְּרִירַת מֶחדָל";
 $text['label-default']['ru-ru'] = "По умолчанию";
+
+$text['label-git_branch']['en-us'] = "Branch:";
+$text['label-git_branch']['es-cl'] = "Rama";
+$text['label-git_branch']['pt-pt'] = "Ramo";
+$text['label-git_branch']['fr-fr'] = "Une succursale";
+$text['label-git_branch']['pt-br'] = "Ramo";
+$text['label-git_branch']['pl'] = "Gałąź";
+$text['label-git_branch']['sv-se'] = "Gren";
+$text['label-git_branch']['uk'] = "філія";
+$text['label-git_branch']['de-at'] = "Ast";
+
+$text['label-git_commit']['en-us'] = "Commit:";
+$text['label-git_commit']['es-cl'] = "Cometer";
+$text['label-git_commit']['pt-pt'] = "cometer";
+$text['label-git_commit']['fr-fr'] = "Commettre";
+$text['label-git_commit']['pt-br'] = "cometer";
+$text['label-git_commit']['pl'] = "Popełnić";
+$text['label-git_commit']['sv-se'] = "Begå";
+$text['label-git_commit']['uk'] = "здійснити";
+$text['label-git_commit']['de-at'] = "Verpflichten";
 
 $text['label-us-ring']['en-us'] = "us-ring";
 $text['label-us-ring']['es-cl'] = "us-ring";

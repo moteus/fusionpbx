@@ -14,7 +14,7 @@ local other_leg_uuid = channel_variable(uuid, "signal_bond")
 log.noticef("other leg: %s\n", other_leg_uuid or '<NONE>')
 
 if other_leg_uuid and #other_leg_uuid > 0 then
-  if t2~= '::NONE::' then
+  if t2 ~= '::NONE::' then
     if t2 == '::KILL::' then 
       channel_kill(other_leg_uuid)
     else
@@ -25,7 +25,7 @@ end
 
 if t1 ~= '::NONE::' then 
   if t1 == '::KILL::' then 
-    channel_kill(other_leg_uuid)
+    channel_kill(uuid)
   else
     channel_transfer(uuid, usplit(t1, '::'))
   end

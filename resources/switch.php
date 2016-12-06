@@ -574,7 +574,7 @@ function extension_presence_id($extension, $number_alias = false) {
 	}
 
 	if(strlen($number_alias) > 0) {
-		if($_SESSION['provision']['number_as_presence_id']['boolean'] === 'true') {
+		if($_SESSION['provision']['number_as_presence_id']['text'] === 'true') {
 			return $number_alias;
 		}
 	}
