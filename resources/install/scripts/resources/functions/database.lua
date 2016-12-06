@@ -12,60 +12,13 @@
 require 'resources.functions.config'
 
 local log = require "resources.functions.log".database
+local utils = require "resources.functions.database.utils"
 
 local BACKEND = database and database.backend
 if type(BACKEND) ~= 'table' then BACKEND = {main = BACKEND} end
 BACKEND.main = BACKEND.main or 'native'
 
 local unpack = unpack or table.unpack
-
------------------------------------------------------------
-
-local NULL, DEFAULT = {}, {}
-
-local param_pattern = "[:]([^%d%s][%a%d_]+)"
-
---
--- Substitude named parameters to query
---
--- @tparam string sql query text
--- @tparam table params values for parameters
--- @treturn[1] string new sql query
--- @treturn[2] nil
--- @treturn[2] string error message
---
-local function apply_params(db, sql, params)
-  params = params or {}
-
-  local err
-
-  local str = string.gsub(sql, param_pattern, function(param)
-    local v, t = params[param], type(params[param])
-    if "string"  == t then return db:quote(v)      end
-    if "number"  == t then return tostring(v)      end
-    if "boolean" == t then return v and '1' or '0' end
-    if NULL      == v then return 'NULL'           end
-    if DEFAULT   == v then return 'DEFAULT'        end
-    err = "undefined parameter: " .. param
-  end)
-
-  if err then return nil, err end
-
-  return str
-end
-
-local sql_escape
-
-if freeswitch then
-  local api = require "resources.functions.api"
-  sql_escape = function(str)
-    return api:execute('sql_escape', str)
-  end
-else
-  sql_escape = function(str)
-    return (string.gsub(str, "'", "''"))
-  end
-end
 
 -----------------------------------------------------------
 local installed_classes = {}
@@ -79,9 +32,9 @@ local function new_database(backend, backend_name)
   Database.__base = backend or default_backend
   Database = setmetatable(Database, Database.__base)
 
-  Database.NULL = NULL
+  Database.NULL = utils.NULL
 
-  Database.DEFAULT = NULL
+  Database.DEFAULT = utils.NULL
 
   function Database.new(...)
     local self = Database.__base.new(...)
@@ -94,7 +47,7 @@ local function new_database(backend, backend_name)
   end
 
   function Database:_apply_params(sql, params)
-    return apply_params(self, sql, params)
+    return utils.apply_params_value(self, sql, params)
   end
 
   function Database:query(sql, ...)
@@ -187,7 +140,7 @@ local function new_database(backend, backend_name)
   end
 
   function Database:escape(str)
-    return sql_escape(str)
+    return utils.sql_escape(str)
   end
 
   function Database:quote(str)
@@ -337,6 +290,10 @@ end
 
 -----------------------------------------------------------
 local Database = {} do
+
+Database.NULL = utils.NULL
+
+Database.DEFAULT = utils.DEFAULT
 
 local backend_loader = setmetatable({}, {__index = function(self, backend)
   local class = require("resources.functions.database." .. backend)
