@@ -12,6 +12,7 @@
 require 'resources.functions.config'
 
 local log = require "resources.functions.log".database
+local utils = require "resources.functions.database.utils"
 
 local BACKEND = database and database.backend
 if type(BACKEND) ~= 'table' then BACKEND = {main = BACKEND} end
@@ -31,6 +32,10 @@ local function new_database(backend, backend_name)
   Database.__base = backend or default_backend
   Database = setmetatable(Database, Database.__base)
 
+  Database.NULL = utils.NULL
+
+  Database.DEFAULT = utils.NULL
+
   function Database.new(...)
     local self = Database.__base.new(...)
     setmetatable(self, Database)
@@ -40,10 +45,55 @@ local function new_database(backend, backend_name)
   function Database:backend_name()
     return backend_name
   end
-  
-  function Database:first_row(sql)
+
+  function Database:_apply_params(sql, params)
+    return utils.apply_params_value(self, sql, params)
+  end
+
+  function Database:query(sql, ...)
+    local params, callback
+
+    local argc = select('#', ...)
+
+    if argc > 0 then
+      local p = select(argc, ...)
+      if (p == nil) or (type(p) == 'function') then
+        callback = p
+        argc = argc - 1
+      end
+    end
+
+    if argc > 0 then
+      local p = select(argc, ...)
+      if (p == nil) or (type(p) == 'table') then
+        params = p
+        argc = argc - 1
+      end
+    end
+
+    assert(argc == 0, 'invalid argument #' .. tostring(argc))
+
+    if params then
+      -- backend supports parameters natively
+      if self.__base.parameter_query then
+        return self.__base.parameter_query(self, sql, params, callback)
+      end
+
+      -- use emulation of parametes
+      local err
+      sql, err = self:_apply_params(sql, params)
+      if not sql then
+        log.errf('can not bind parameter: %s', tostring(err))
+        return nil, err
+      end
+    end
+
+    return self.__base.query(self, sql, callback)
+  end
+
+  function Database:first_row(sql, params)
     local result
-    local ok, err = self:query(sql, function(row)
+    local ok, err = self:query(sql, params, function(row)
       result = row
       return 1
     end)
@@ -51,21 +101,33 @@ local function new_database(backend, backend_name)
     return result
   end
 
-  function Database:first_value(sql)
-    local result, err = self:first_row(sql)
+  function Database:first_value(sql, params)
+    local result, err = self:first_row(sql, params)
     if not result then return nil, err end
     local k, v = next(result)
     return v
   end
 
   function Database:first(sql, ...)
-    local result, err = self:first_row(sql)
-    if not result then return nil, err end
-    local t, n = {}, select('#', ...)
-    for i = 1, n do
-      t[i] = result[(select(i, ...))]
+    local t = type((...))
+    local has_params = (t == 'nil') or (t == 'table')
+
+    local result, err
+    if has_params then
+      result, err = self:first_row(sql, (...))
+    else
+      result, err = self:first_row(sql)
     end
-    return unpack(t, 1, n)
+
+    if not result then return nil, err end
+
+    local t, n, c = {}, select('#', ...), 0
+    for i = (has_params and 2 or 1), n do
+      c = c + 1
+      t[c] = result[(select(i, ...))]
+    end
+
+    return unpack(t, 1, c)
   end
 
   function Database:fetch_all(sql)
@@ -78,7 +140,7 @@ local function new_database(backend, backend_name)
   end
 
   function Database:escape(str)
-    return (string.gsub(str, "'", "''"))
+    return utils.sql_escape(str)
   end
 
   function Database:quote(str)
@@ -176,6 +238,46 @@ local function new_database(backend, backend_name)
     db:release()
     assert(not db:connected())
 
+    local db = Database.new(...)
+
+    assert(db:connected())
+
+    -- test substitude parameters
+    t = assert(db:first_row('select :p1 as p1, :p2 as p2', {p1 = 'hello', p2 = 'world'}))
+    assert(t.p1 == 'hello')
+    assert(t.p2 == 'world')
+
+    -- test escape string
+    -- `sql_escape` on freeswitch do `trim`
+    if not freeswitch then
+      -- test no trim value
+      local v = " hello "
+      a = assert(db:first_value('select :p1', {p1 = v}))
+      assert(a == v)
+
+      -- test newline 
+      -- On Windows with pgsql it replace `\n` to `\r\n`)
+      local v = "\r\nhello\r\nworld\r\n"
+      a = assert(db:first_value('select :p1', {p1 = v}))
+      assert(a == v, string.format('%q', tostring(a)))
+    end
+
+    -- test backslash
+    local v = "\\hello\\world\\"
+    a = assert(db:first_value('select :p1', {p1 = v}))
+    assert(a == v, string.format('%q', tostring(a)))
+
+    -- test single quote
+    local v = "'hello''world'''"
+    a = assert(db:first_value('select :p1', {p1 = v}))
+    assert(a == v, string.format('%q', tostring(a)))
+
+    -- test empty string
+    local v = ""
+    a = assert(db:first_value('select :p1', {p1 = v}))
+    assert(a == v, string.format('%q', tostring(a)))
+
+    db:release()
     log.info('self_test Database - pass')
   end
 
@@ -188,6 +290,10 @@ end
 
 -----------------------------------------------------------
 local Database = {} do
+
+Database.NULL = utils.NULL
+
+Database.DEFAULT = utils.DEFAULT
 
 local backend_loader = setmetatable({}, {__index = function(self, backend)
   local class = require("resources.functions.database." .. backend)

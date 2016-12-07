@@ -36,7 +36,10 @@ function LuaSQLDatabase.new(name)
   local env = assert (luasql[typ]())
   local dbh = assert (env:connect( usplit(args, ':', true) ))
 
+  self._dbtype = typ
+
   self._env, self._dbh = env, dbh
+
   return self
 end
 
@@ -100,6 +103,10 @@ function LuaSQLDatabase:connected()
   end
   local str = tostring(self._dbh)
   return not string.find(str, 'closed')
+end
+
+function LuaSQLDatabase:dbtype()
+  return self._dbtype
 end
 
 end

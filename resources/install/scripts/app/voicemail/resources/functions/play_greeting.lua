@@ -51,15 +51,17 @@
 							if (storage_type == "base64") then
 								local dbh = Database.new('system', 'base64/read')
 
-								sql = [[SELECT * FROM v_voicemail_greetings
-									WHERE domain_uuid = ']] .. domain_uuid ..[['
-									AND voicemail_id = ']].. voicemail_id.. [['
-									AND greeting_id = ']].. greeting_id.. [[' ]];
+								local sql = [[SELECT * FROM v_voicemail_greetings
+									WHERE domain_uuid = :domain_uuid
+									AND voicemail_id = :voicemail_id
+									AND greeting_id = :greeting_id ]];
+								local params = {domain_uuid = domain_uuid, voicemail_id = voicemail_id,
+									greeting_id = greeting_id};
 								if (debug["sql"]) then
-									freeswitch.consoleLog("notice", "[voicemail] SQL: " .. sql .. "\n");
+									freeswitch.consoleLog("notice", "[voicemail] SQL: " .. sql .. "; params:" .. json.encode(params) .. "\n");
 								end
 								local saved
-								status = dbh:query(sql, function(row)
+								dbh:query(sql, params, function(row)
 									--set the voicemail message path
 										mkdir(voicemail_dir.."/"..voicemail_id);
 										greeting_location = voicemail_dir.."/"..voicemail_id.."/greeting_"..greeting_id..".wav"; --vm_message_ext;
@@ -80,7 +82,8 @@
 
 								if saved then
 									--play the greeting
-										session:execute("playback",voicemail_dir.."/"..voicemail_id.."/greeting_"..greeting_id..".wav");
+										dtmf_digits = session:playAndGetDigits(min_digits, max_digits, tries, timeout, "#", voicemail_dir.."/"..voicemail_id.."/greeting_"..greeting_id..".wav", "", "\\d+", max_timeout);								
+										--session:execute("playback",voicemail_dir.."/"..voicemail_id.."/greeting_"..greeting_id..".wav");
 
 									--delete the greeting (retain local for better responsiveness)
 										--os.remove(voicemail_dir.."/"..voicemail_id.."/greeting_"..greeting_id..".wav");

@@ -17,7 +17,7 @@
 
 	The Initial Developer of the Original Code is
 	Mark J Crane <markjcrane@fusionpbx.com>
-	Copyright (C) 2008-2015 All Rights Reserved.
+	Copyright (C) 2008-2016 All Rights Reserved.
 
 	Contributor(s):
 	Mark J Crane <markjcrane@fusionpbx.com>
@@ -63,7 +63,14 @@
 		$device_key_value = check_str($_POST["device_key_value"]);
 		$device_key_extension = check_str($_POST["device_key_extension"]);
 		$device_key_label = check_str($_POST["device_key_label"]);
-
+		
+		//$device_setting_category = check_str($_POST["device_setting_category"]);
+		$device_setting_subcategory = check_str($_POST["device_setting_subcategory"]);
+		//$device_setting_name = check_str($_POST["device_setting_name"]);
+		$device_setting_value = check_str($_POST["device_setting_value"]);
+		$device_setting_enabled = check_str($_POST["device_setting_enabled"]);
+		$device_setting_description = check_str($_POST["device_setting_description"]);
+		
 		//allow the domain_uuid to be changed only with the device_profile_domain permission
 		if (permission_exists('device_profile_domain')) {
 			$domain_uuid = check_str($_POST["domain_uuid"]);
@@ -122,18 +129,37 @@
 							$x++;
 					}
 
+					$x = 0;
+					foreach ($_POST["device_settings"] as $row) {
+						//unset the empty row
+							if (strlen($row["device_setting_subcategory"]) == 0) {
+								unset($_POST["device_settings"][$x]);
+							}
+						//unset device_detail_uuid if the field has no value
+							if (strlen($row["device_setting_uuid"]) == 0) {
+								unset($_POST["device_settings"][$x]["device_setting_uuid"]);
+							}
+						//increment the row
+							$x++;
+					}
+
+
+				//prepare the array
+					$array['device_profiles'][] = $_POST;
+
 				//set the default
 					$save = true;
 
 				//save the profile
 					if ($save) {
-						$orm = new orm;
-						$orm->name('device_profiles');
+						$database = new database;
+						$database->app_name = 'devices';
+						$database->app_uuid = '4efa1a1a-32e7-bf83-534b-6c8299958a8e';
 						if (strlen($device_profile_uuid) > 0) {
-							$orm->uuid($device_profile_uuid);
+							$database->uuid($device_profile_uuid);
 						}
-						$orm->save($_POST);
-						$response = $orm->message;
+						$database->save($array);
+						$response = $database->message;
 						if (strlen($response['uuid']) > 0) {
 							$device_profile_uuid = $response['uuid'];
 						}
@@ -141,7 +167,9 @@
 
 				//write the provision files
 					if (strlen($_SESSION['provision']['path']['text']) > 0) {
-						require_once "app/provision/provision_write.php";
+						$prov = new provision;
+						$prov->domain_uuid = $domain_uuid;
+						$response = $prov->write();
 					}
 
 				//set the message
@@ -167,11 +195,11 @@
 
 //pre-populate the form
 	if (count($_GET) > 0 && $_POST["persistformvar"] != "true") {
-		$orm = new orm;
-		$orm->name('device_profiles');
-		$orm->uuid($device_profile_uuid);
-		$result = $orm->find()->get();
-		//$message = $orm->message;
+		$sql = "select * from v_device_profiles ";
+		$sql .= "where device_profile_uuid = '$device_profile_uuid' ";
+		$prep_statement = $db->prepare(check_sql($sql));
+		$prep_statement->execute();
+		$result = $prep_statement->fetchAll(PDO::FETCH_NAMED);
 		foreach ($result as &$row) {
 			$device_profile_name = $row["device_profile_name"];
 			$device_profile_domain_uuid = $row["domain_uuid"];
@@ -241,6 +269,18 @@
 			$vendor_count++;
 		}
 	}
+
+//get device settings
+	$sql = "SELECT * FROM v_device_settings ";
+	$sql .= "WHERE device_profile_uuid = '".$device_profile_uuid."' ";
+	$sql .= "ORDER by device_setting_subcategory asc ";
+	$prep_statement = $db->prepare(check_sql($sql));
+	$prep_statement->execute();
+	$device_settings = $prep_statement->fetchAll(PDO::FETCH_NAMED);
+	$device_settings[$x]['device_setting_name'] = '';
+	$device_settings[$x]['device_setting_value'] = '';
+	$device_settings[$x]['enabled'] = '';
+	$device_settings[$x]['device_setting_description'] = '';
 
 //show the header
 	require_once "resources/header.php";
@@ -540,6 +580,89 @@
 	}
 	echo "		</td>";
 	echo "	</tr>";
+
+//device settings
+	echo "	<tr>";
+	echo "		<td class='vncell' valign='top'>".$text['label-settings']."</td>";
+	echo "		<td class='vtable' align='left'>";
+	echo "			<table border='0' cellpadding='0' cellspacing='3'>\n";
+	echo "			<tr>\n";
+	echo "				<td class='vtable'>".$text['label-device_setting_name']."</td>\n";
+	echo "				<td class='vtable'>".$text['label-device_setting_value']."</td>\n";
+	echo "				<td class='vtable'>".$text['label-enabled']."</td>\n";
+	echo "				<td class='vtable'>".$text['label-device_setting_description']."</td>\n";
+	echo "				<td>&nbsp;</td>\n";
+	echo "			</tr>\n";
+
+	$x = 0;
+	foreach($device_settings as $row) {
+		//determine whether to hide the element
+			if (strlen($device_setting_uuid) == 0) {
+				$element['hidden'] = false;
+				$element['visibility'] = "visibility:visible;";
+			}
+			else {
+				$element['hidden'] = true;
+				$element['visibility'] = "visibility:hidden;";
+			}
+		//add the primary key uuid
+			if (strlen($row['device_setting_uuid']) > 0) {
+				echo "	<input name='device_settings[".$x."][device_setting_uuid]' type='hidden' value=\"".$row['device_setting_uuid']."\"/>\n";
+			}
+
+		//show alls rows in the array
+			echo "<tr>\n";
+			echo "<td align='left'>\n";
+			echo "	<input class='formfld' type='text' name='device_settings[".$x."][device_setting_subcategory]' style='width: 120px;' maxlength='255' value=\"".$row['device_setting_subcategory']."\"/>\n";
+			echo "</td>\n";
+
+			echo "<td align='left'>\n";
+			echo "	<input class='formfld' type='text' name='device_settings[".$x."][device_setting_value]' style='width: 120px;' maxlength='255' value=\"".$row['device_setting_value']."\"/>\n";
+			echo "</td>\n";
+
+			echo "<td align='left'>\n";
+			echo "    <select class='formfld' name='device_settings[".$x."][device_setting_enabled]' style='width: 90px;'>\n";
+			echo "    <option value=''></option>\n";
+			if ($row['device_setting_enabled'] == "true") {
+				echo "    <option value='true' selected='selected'>".$text['label-true']."</option>\n";
+			}
+			else {
+				echo "    <option value='true'>".$text['label-true']."</option>\n";
+			}
+			if ($row['device_setting_enabled'] == "false") {
+				echo "    <option value='false' selected='selected'>".$text['label-false']."</option>\n";
+			}
+			else {
+				echo "    <option value='false'>".$text['label-false']."</option>\n";
+			}
+			echo "    </select>\n";
+			echo "</td>\n";
+
+			echo "<td align='left'>\n";
+			echo "	<input class='formfld' type='text' name='device_settings[".$x."][device_setting_description]' style='width: 150px;' maxlength='255' value=\"".$row['device_setting_description']."\"/>\n";
+			echo "</td>\n";
+
+			if (strlen($text['description-settings']) > 0) {
+				echo "			<br>".$text['description-settings']."\n";
+			}
+			echo "		</td>";
+
+			echo "				<td>\n";
+			if (strlen($row['device_setting_uuid']) > 0) {
+				echo "					<a href='device_setting_delete.php?device_profile_uuid=".$row['device_profile_uuid']."&id=".$row['device_setting_uuid']."' alt='".$text['button-delete']."' onclick=\"return confirm('".$text['confirm-delete']."')\">$v_link_label_delete</a>\n";
+			}
+			echo "				</td>\n";
+			echo "			</tr>\n";
+			$x++;
+		}
+		/*
+		echo "			<td align='left'>\n";
+		echo "				<input type='button' class='btn' value='".$text['button-save']."' onclick='submit_form();'>\n";
+		*/
+		echo "			</table>\n";
+		echo "			</td>\n";
+		echo "			</tr>\n";
+				
 
 	if (permission_exists('device_profile_domain')) {
 		echo "<tr>\n";

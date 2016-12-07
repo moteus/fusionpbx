@@ -3,6 +3,7 @@
 --
 
 local log      = require "resources.functions.log".database
+local utils    = require "resources.functions.database.utils"
 local odbc     = require "odbc.dba"
 local odbcpool = require "odbc.dba.pool"
 
@@ -31,14 +32,15 @@ function OdbcPoolDatabase.new(name)
   return self
 end
 
-function OdbcPoolDatabase:query(sql, fn)
+function OdbcPoolDatabase:_query(sql, params, fn)
   self._rows_affected = nil
+  params = params or {}
   local cli = self._cli
 
   local ok, err
   if fn then
     ok, err = cli:acquire(self._timeout, function(dbh)
-      local ok, err = dbh:neach(sql, function(row)
+      local ok, err = dbh:neach(sql, params, function(row)
         local n = tonumber((fn(remove_null(row, odbc.NULL, ""))))
         if n and n ~= 0 then
           return true
@@ -51,7 +53,7 @@ function OdbcPoolDatabase:query(sql, fn)
     end)
   else
     ok, err = cli:acquire(self._timeout, function(dbh)
-      local ok, err = dbh:exec(sql)
+      local ok, err = dbh:exec(sql, params)
       if err and not ok then
         log.errf("Can not execute sql: %s\n%s", tostring(err), sql)
       end
@@ -67,6 +69,17 @@ function OdbcPoolDatabase:query(sql, fn)
   return ok
 end
 
+function OdbcPoolDatabase:query(sql, fn)
+  return OdbcPoolDatabase._query(self, sql, nil, fn)
+end
+
+function OdbcPoolDatabase:parameter_query(sql, params, fn)
+  sql, params = utils.apply_params(self, sql, params)
+  if not sql then return nil, params end
+
+  return OdbcPoolDatabase._query(self, sql, params, fn)
+end
+
 function OdbcPoolDatabase:affected_rows()
   return self._rows_affected;
 end
@@ -77,6 +90,10 @@ end
 
 function OdbcPoolDatabase:connected()
   return not not self._cli
+end
+
+function OdbcPoolDatabase:dbtype()
+  return 'odbc'
 end
 
 end

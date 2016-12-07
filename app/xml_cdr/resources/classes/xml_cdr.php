@@ -330,9 +330,16 @@ if (!class_exists('xml_cdr')) {
 				$domain_name = check_str(urldecode($xml->variables->domain_name));
 				$domain_uuid = check_str(urldecode($xml->variables->domain_uuid));
 
-			//get the domain name from sip_req_host
+			//get the domain name
 				if (strlen($domain_name) == 0) {
 					$domain_name = check_str(urldecode($xml->variables->sip_req_host));
+				}
+				if (strlen($domain_name) == 0) {
+					$presence_id = check_str(urldecode($xml->variables->presence_id));
+					if (strlen($presence_id) > 0) {
+						$presence_array = explode($presence_id);
+						$domain_name = $presence_array[1];
+					}
 				}
 
 			//send the domain name to the cdr log
@@ -669,7 +676,7 @@ if (!class_exists('xml_cdr')) {
 				$sql .= " or \n";
 				$sql .= " (e.number_alias is not null and (caller_id_number = e.number_alias or destination_number = e.number_alias))\n";
 				$sql .= ")\n";
-				$sql .= "and (answer_stamp is not null and bridge_uuid is null) \n";
+				$sql .= "and (answer_stamp is null and bridge_uuid is null) \n";
 				$sql .= "and direction = 'inbound' \n";
 				if (!$this->include_internal) {
 					$sql .= " and (direction = 'inbound' or direction = 'outbound') \n";
