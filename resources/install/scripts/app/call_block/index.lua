@@ -46,13 +46,12 @@ This method causes the script to get its manadatory arguments directly from the 
 
 -- Command line parameters
 	local params = {
-			cid_num = string.match(tostring(session:getVariable("caller_id_number")), "%d+"),
-			called_num = session:getVariable("destination_number"),
-			cid_name = session:getVariable("caller_id_name"),
-			domain_name = session:getVariable("domain_name"),
-			userid = "", -- session:getVariable("id")
-			loglevel = "W" -- Warning, Debug, Info
-			}
+		cid_num = string.match(tostring(session:getVariable("caller_id_number")), "%d+"),
+		cid_name = session:getVariable("caller_id_name"),
+		domain_name = session:getVariable("domain_name"),
+		userid = "", -- session:getVariable("id")
+		loglevel = "W" -- Warning, Debug, Info
+		}
 
 --check if cid_num is numeric
 	if (tonumber(params["cid_num"]) == nil) then
@@ -61,8 +60,6 @@ This method causes the script to get its manadatory arguments directly from the 
 
 -- local storage
 	local sql = nil
-
-	local cache = require "resources.functions.cache"
 
 --define the functions
 	require "resources.functions.trim";
@@ -82,19 +79,19 @@ This method causes the script to get its manadatory arguments directly from the 
 	session:setVariable("call_block", "")
 
 --send to the log
-	logger("D", "NOTICE", "params are: " .. string.format("'%s', '%s', '%s', '%s', '%s'", params["cid_num"], 
-			params["called_num"], params["cid_name"], params["userid"], params["domain_name"]));
+	logger("D", "NOTICE", "params are: " .. string.format("'%s', '%s', '%s', '%s'", params["cid_num"],
+			params["cid_name"], params["userid"], params["domain_name"]));
 
 --get the cache
-	local cached
-	if cache.support() then
-		cached = cache.get("app:call_block:" .. params["domain_name"] .. ":caller:" .. params["cid_num"])
-			or cache.get("app:call_block:" .. params["domain_name"] .. ":called:" .. params["called_num"])
+	if (trim(api:execute("module_exists", "mod_memcache")) == "true") then
+		cache = trim(api:execute("memcache", "get app:call_block:" .. params["domain_name"] .. ":" .. params["cid_num"]));
+	else
+		cache = "-ERR NOT FOUND";
 	end
 
 --check if number is in call_block list then increment the counter and block the call
 	--if not cached then get the information from the database
-	if not cached then
+	if (cache == "-ERR NOT FOUND") then
 		--connect to the database
 			Database = require "resources.functions.database";
 			dbh = Database.new('system');
@@ -102,20 +99,14 @@ This method causes the script to get its manadatory arguments directly from the 
 		--log if not connect
 			if dbh:connected() == false then
 				logger("W", "NOTICE", "db was not connected")
-				assert(false, "db was not connected")
 			end
 
 		--check if the the call block is blocked
-			local sql = "SELECT * FROM v_call_block as c "
+			sql = "SELECT * FROM v_call_block as c "
 			sql = sql .. "JOIN v_domains as d ON c.domain_uuid=d.domain_uuid "
-			sql = sql .. "WHERE d.domain_name = :domain_name AND("
-			sql = sql .. "(c.call_block_number = :cid_num AND "
-			sql = sql .. "(c.call_block_number_type <> 'called' or c.call_block_number_type is NULL)) OR"
-			sql = sql .. "(c.call_block_number = :called_num AND c.call_block_number_type = 'called'))"
-
-			status = dbh:query(sql, params, function(rows)
+			sql = sql .. "WHERE c.call_block_number = :cid_num AND d.domain_name = :domain_name "
+			dbh:query(sql, params, function(rows)
 				found_cid_num = rows["call_block_number"];
-				found_num_type = rows["call_block_number_type"];
 				found_uuid = rows["call_block_uuid"];
 				found_enabled = rows["call_block_enabled"];
 				found_action = rows["call_block_action"];
@@ -124,15 +115,15 @@ This method causes the script to get its manadatory arguments directly from the 
 			-- dbh:affected_rows() doesn't do anything if using core:db so this is the workaround:
 
 		--set the cache
-			if (found_cid_num) and (found_enabled == "true") then	-- caller id exists
-				if (not found_num_type) or (#found_num_type == 0) then
-					found_num_type = 'caller'
+			if (found_cid_num) then	-- caller id exists
+				if (found_enabled == "true") then
+					--set the cache
+					cache = "found_cid_num=" .. found_cid_num .. "&found_uuid=" .. found_uuid .. "&found_enabled=" .. found_enabled .. "&found_action=" .. found_action .. "&found_count=" .. found_count;
+					result = trim(api:execute("memcache", "set app:call_block:" .. params["domain_name"] .. ":" .. params["cid_num"] .. " '"..cache.."' "..expire["call_block"]));
+
+					--set the source
+					source = "database";
 				end
-				local key = "app:call_block:" .. params["domain_name"] .. ":" .. found_num_type .. ":" .. found_cid_num
-				local val = "found_cid_num=" .. found_cid_num .. "&found_uuid=" .. found_uuid .. "&found_enabled=" .. found_enabled .. "&found_action=" .. found_action .. "&found_count=" .. found_count;
-				cache.set(key, val, expire["call_block"])
-				--set the source
-				source = "database";
 			end
 
 	else
@@ -140,13 +131,16 @@ This method causes the script to get its manadatory arguments directly from the 
 			--add the function
 				require "resources.functions.explode";
 
+			--parse the cache
+				array = explode("&", cache);
+
 			--define the array/table and variables
 				local var = {}
 				local key = "";
 				local value = "";
 
 			--parse the cache
-				key_pairs = explode("&", cached);
+				key_pairs = explode("&", cache);
 				for k,v in pairs(key_pairs) do
 					f = explode("=", v);
 					key = f[1];
@@ -166,38 +160,39 @@ This method causes the script to get its manadatory arguments directly from the 
 	end
 
 --debug information
-	-- freeswitch.consoleLog("err", "[call_block] " .. (cached or 'NOT FOUND') .. "\n");
-	-- freeswitch.consoleLog("err", "[call_block] found_cid_num = " .. found_cid_num  .. "\n");
-	-- freeswitch.consoleLog("err", "[call_block] found_enabled = " .. found_enabled  .. "\n");
-	-- freeswitch.consoleLog("err", "[call_block] found_action = " .. found_action  .. "\n");
-	-- freeswitch.consoleLog("err", "[call_block] source = " .. source  .. "\n");
+	--freeswitch.consoleLog("error", "[call_block] " .. cache .. "\n");
+	--freeswitch.consoleLog("error", "[call_block] found_cid_num = " .. found_cid_num  .. "\n");
+	--freeswitch.consoleLog("error", "[call_block] found_enabled = " .. found_enabled  .. "\n");
+	--freeswitch.consoleLog("error", "[call_block] source = " .. source  .. "\n");
 
 --block the call
-	if found_cid_num and (found_enabled == "true") then	-- caller id exists
-		details = {}
-		k = 0
-		for v in string.gmatch(found_action, "[%w%.]+") do
-			details[k] = v
-			--logger("W", "INFO", "Details: " .. details[k])
-			k = k + 1
-		end
-		if (source == "database") then
+	if found_cid_num then	-- caller id exists
+		if (found_enabled == "true") then
+			details = {}
+			k = 0
+			for v in string.gmatch(found_action, "[%w%.]+") do
+				details[k] = v
+				--logger("W", "INFO", "Details: " .. details[k])
+				k = k + 1
+			end
+			if (source == "database") then
 				dbh:query("UPDATE v_call_block SET call_block_count = :call_block_count WHERE call_block_uuid = :call_block_uuid",{
 					call_block_count = found_count + 1, call_block_uuid = found_uuid
 				})
-		end
-		session:execute("set", "call_blocked=true");
-		logger("W", "NOTICE", "number " .. found_cid_num .. " blocked with " .. found_count .. " previous hits, domain_name: " .. params["domain_name"] .. " [" .. source .. "]")
-		if (found_action == "Reject") then
-			session:hangup("CALL_REJECTED")
-		elseif (found_action == "Busy") then
-			session:hangup("USER_BUSY")
-		elseif (found_action =="Hold") then
-			session:setAutoHangup(false)
-			session:execute("transfer", "*9664")
-		elseif (details[0] =="Voicemail") then
-			session:setAutoHangup(false)
-			session:execute("transfer", "*99" .. details[2] .. " XML  " .. details[1])
+			end
+			session:execute("set", "call_blocked=true");
+			logger("W", "NOTICE", "number " .. params["cid_num"] .. " blocked with " .. found_count .. " previous hits, domain_name: " .. params["domain_name"])
+			if (found_action == "Reject") then
+				session:hangup("CALL_REJECTED")
+			elseif (found_action == "Busy") then
+				session:hangup("USER_BUSY")
+			elseif (found_action =="Hold") then
+				session:setAutoHangup(false)
+				session:execute("transfer", "*9664")
+			elseif (details[0] =="Voicemail") then
+				session:setAutoHangup(false)
+				session:execute("transfer", "*99" .. details[2] .. " XML  " .. details[1])
+			end
 		end
 	end
 
