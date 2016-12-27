@@ -109,6 +109,15 @@
 	echo "	<input type='hidden' name='remote_media_ip' value='".$remote_media_ip."'>\n";
 	echo "	<input type='hidden' name='network_addr' value='".$network_addr."'>\n";
 	echo "	<input type='hidden' name='bridge_uuid' value='".$bridge_uuid."'>\n";
+	if (is_array($_SESSION['cdr']['field'])) {
+		foreach ($_SESSION['cdr']['field'] as $field) {
+			if (isset($_REQUEST[$field])) {
+				$array = explode(",", $field);
+				$field_name = $array[count($array) - 1];
+				echo "	<input type='hidden' name='$field_name' value='".$$field_name."'>\n";
+			}
+		}
+	}
 	if (isset($order_by)) {
 		echo "	<input type='hidden' name='order_by' value='".$order_by."'>\n";
 		echo "	<input type='hidden' name='order' value='".$order."'>\n";
@@ -143,7 +152,7 @@
 	echo "					<option value='pdf'>PDF</option>\n";
 	echo "				</select>\n";
 	echo "			</td>\n";
-	if ($paging_controls_mini != '') {
+	if ($result_count == $rows_per_page && $paging_controls_mini != '') {
 		echo "		<td style='vertical-align: top; padding-left: 15px;'>".$paging_controls_mini."</td>\n";
 	}
 	echo "		</tr>\n";
@@ -361,6 +370,17 @@
 			echo "<th>".$text['label-recording']."</th>\n";
 			$col_count++;
 		}
+		if (is_array($_SESSION['cdr']['field'])) {
+			foreach ($_SESSION['cdr']['field'] as $field) {
+				$array = explode(",", $field);
+				$field_name = $array[count($array) - 1];
+				$field_label = ucwords(str_replace("_", " ", $field_name));
+				$field_label = str_replace("Sip", "SIP", $field_label);
+				if ($field_name != "destination_number") {
+					echo th_order_by($field_name, $field_label, $order_by, $order, null, "style='text-align: right;'", $param);
+				}
+			}
+		}
 		echo th_order_by('start_stamp', $text['label-start'], $order_by, $order, null, "style='text-align: center;'", $param);
 		echo th_order_by('tta', $text['label-tta'], $order_by, $order, null, "style='text-align: right;'", $param);
 		echo th_order_by('duration', $text['label-duration'], $order_by, $order, null, "style='text-align: center;'", $param);
@@ -545,6 +565,16 @@
 						echo "	<td valign='top' align='center' class='".$row_style[$c]."'>&nbsp;</td>\n";
 					}
 				}
+			//dynamic cdr fields
+				if (is_array($_SESSION['cdr']['field'])) {
+					foreach ($_SESSION['cdr']['field'] as $field) {
+						$array = explode(",", $field);
+						$field_name = $array[count($array) - 1];
+						if ($field_name != "destination_number") {
+							echo "	<td valign='top' class='".$row_style[$c]."' style='text-align: center;' nowrap='nowrap'>".$row[$field_name] ."</td>\n";
+						}
+					}
+				}
 			//start
 				echo "	<td valign='top' class='".$row_style[$c]."' style='text-align: center;' nowrap='nowrap'>".$tmp_start_epoch."</td>\n";
 			//tta (time to answer)
@@ -648,7 +678,9 @@
 	echo "</table>";
 	echo "</form>";
 	echo "<br><br>";
-	echo $paging_controls;
+	if ($result_count == $rows_per_page) {
+		echo $paging_controls;
+	}
 	echo "<br><br>";
 
 	// check or uncheck all checkboxes
