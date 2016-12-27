@@ -142,6 +142,11 @@ if (!class_exists('xml_cdr')) {
 			$this->fields[] = "hangup_cause";
 			$this->fields[] = "hangup_cause_q850";
 			$this->fields[] = "sip_hangup_disposition";
+			if (is_array($_SESSION['cdr']['field'])) {
+				foreach ($_SESSION['cdr']['field'] as $field) {
+					$this->fields[] = $field;
+				}
+			}
 		}
 
 		/**
@@ -339,6 +344,24 @@ if (!class_exists('xml_cdr')) {
 					if (strlen($presence_id) > 0) {
 						$presence_array = explode($presence_id);
 						$domain_name = $presence_array[1];
+					}
+				}
+
+			//dynamic cdr fields
+				if (is_array($_SESSION['cdr']['field'])) {
+					foreach ($_SESSION['cdr']['field'] as $field) {
+						$fields = explode(",", $field);
+						$field_name = end($fields);
+						$this->fields[] = $field_name;
+						if (count($fields) == 1) {
+							$this->array[$key][$field_name] = urldecode($xml->variables->$fields[0]);
+						}
+						if (count($fields) == 2) {
+							$this->array[$key][$field_name] = urldecode($xml->$fields[0]->$fields[1]);
+						}
+						if (count($fields) == 3) {
+							$this->array[$key][$field_name] = urldecode($xml->$fields[0]->$fields[1]->$fields[2]);
+						}
 					}
 				}
 
