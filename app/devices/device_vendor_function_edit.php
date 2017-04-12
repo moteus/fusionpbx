@@ -198,8 +198,8 @@
 		$sql .= "where device_vendor_function_uuid = '$device_vendor_function_uuid' ";
 		$prep_statement = $db->prepare(check_sql($sql));
 		$prep_statement->execute();
-		$result = $prep_statement->fetchAll(PDO::FETCH_NAMED);
-		foreach ($result as &$row) {
+		$device_vendor_functions = $prep_statement->fetchAll(PDO::FETCH_NAMED);
+		foreach ($device_vendor_functions as &$row) {
 			//$label = $row["label"];
 			$name = $row["name"];
 			$value = $row["value"];
@@ -217,15 +217,13 @@
 	$sql .= "	v_groups as g ";
 	$sql .= "where ";
 	$sql .= "	fg.group_uuid = g.group_uuid ";
-	//$sql .= "	and fg.device_vendor_uuid = :device_vendor_uuid ";
-	$sql .= "	and fg.device_vendor_uuid = '$device_vendor_uuid' ";
-	//$sql .= "	and fg.device_vendor_function_uuid = :device_vendor_function_uuid ";
-	$sql .= "	and fg.device_vendor_function_uuid = '$device_vendor_function_uuid' ";
+	$sql .= "	and fg.device_vendor_uuid = :device_vendor_uuid ";
+	//$sql .= "	and fg.device_vendor_uuid = '$device_vendor_uuid' ";
+	$sql .= "	and fg.device_vendor_function_uuid = :device_vendor_function_uuid ";
+	//$sql .= "	and fg.device_vendor_function_uuid = '$device_vendor_function_uuid' ";
 	$sql .= "order by ";
 	$sql .= "	g.domain_uuid desc, ";
 	$sql .= "	g.group_name asc ";
-	//echo $sql;
-	//exit;
 	$prep_statement = $db->prepare(check_sql($sql));
 	$prep_statement->bindParam(':device_vendor_uuid', $device_vendor_uuid);
 	$prep_statement->bindParam(':device_vendor_function_uuid', $device_vendor_function_uuid);
@@ -234,9 +232,11 @@
 	unset($sql, $prep_statement);
 
 //set the assigned_groups array
-	foreach($menu_item_groups as $field) {
-		if (strlen($field['group_name']) > 0) {
-			$assigned_groups[] = $field['group_uuid'];
+	if (is_array($menu_item_groups)) {
+		foreach($menu_item_groups as $field) {
+			if (strlen($field['group_name']) > 0) {
+				$assigned_groups[] = $field['group_uuid'];
+			}
 		}
 	}
 

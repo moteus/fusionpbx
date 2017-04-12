@@ -68,6 +68,16 @@
 	if (isset($_REQUEST["dialplan_context"])) { $dialplan_context = check_str($_REQUEST["dialplan_context"]); } else { $dialplan_context = null; }
 	if (isset($_REQUEST["app_uuid"])) { $app_uuid = check_str($_REQUEST["app_uuid"]); } else { $app_uuid = null; }
 
+//make sure all dialplans with context of public have the inbound route app_uuid
+	if ($app_uuid == 'c03b422e-13a8-bd1b-e42b-b6b9b4d27ce4') {
+		$sql = "update v_dialplans set ";
+		$sql .= "app_uuid = 'c03b422e-13a8-bd1b-e42b-b6b9b4d27ce4' ";
+		$sql .= "where dialplan_context = 'public' ";
+		$sql .= "and app_uuid is null; ";
+		$db->exec($sql);
+		unset($sql);
+	}
+
 //includes
 	require_once "resources/header.php";
 	require_once "resources/paging.php";
@@ -256,7 +266,7 @@
 	echo "<table class='tr_hover' width='100%' border='0' cellpadding='0' cellspacing='0'>\n";
 	echo "<tr>\n";
 	if (permission_exists('dialplan_delete') && $result_count > 0) {
-		echo "<th style='text-align: center;' style='text-align: center; padding: 3px 0px 0px 0px;' width='1'><input type='checkbox' style='margin: 0px 0px 0px 2px;' onchange=\"(this.checked) ? check('all') : check('none');\"></th>";
+		echo "<th style='text-align: center; padding: 3px 0px 0px 0px;' width='1'><input type='checkbox' style='margin: 0px 0px 0px 2px;' onchange=\"(this.checked) ? check('all') : check('none');\"></th>";
 	}
 	echo th_order_by('dialplan_name', $text['label-name'], $order_by, $order, $app_uuid, null, (($search != '') ? "search=".$search : null));
 	echo th_order_by('dialplan_number', $text['label-number'], $order_by, $order, $app_uuid, null, (($search != '') ? "search=".$search : null));

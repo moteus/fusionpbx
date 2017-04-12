@@ -99,6 +99,7 @@
 			$voicemail_mail_to = $_POST["voicemail_mail_to"];
 			$voicemail_file = $_POST["voicemail_file"];
 			$voicemail_local_after_email = $_POST["voicemail_local_after_email"];
+			$voicemail_description = $_POST["voicemail_description"];
 			$user_context = $_POST["user_context"];
 			$range = $_POST["range"];
 			$autogen_users = $_POST["autogen_users"];
@@ -189,9 +190,7 @@
 			}
 			else {
 				//if the user_context was not set then set the default value
-				if (strlen($user_context) == 0) {
-					$user_context = $_SESSION['domain_name'];
-				}
+				$user_context = $_SESSION['domain_name'];
 			}
 
 		//prevent users from bypassing extension limit by using range
@@ -386,6 +385,7 @@
 								//if voicemail_uuid does not exist then get a new uuid
 									if (!isset($voicemail_uuid)) {
 										$voicemail_uuid = uuid();
+										$voicemail_tutorial = 'true';
 									}
 
 								//add the voicemail
@@ -400,7 +400,11 @@
 									$array["voicemails"][$i]["voicemail_file"] = $voicemail_file;
 									$array["voicemails"][$i]["voicemail_local_after_email"] = $voicemail_local_after_email;
 									$array["voicemails"][$i]["voicemail_enabled"] = $voicemail_enabled;
+									if ( empty($voicemail_description)){
+										$voicemail_description = $description;
+									}
 									$array["voicemails"][$i]["voicemail_description"] = $voicemail_description;
+									$array["voicemails"][$i]["voicemail_tutorial"] = $voicemail_tutorial;
 							}
 
 						//increment the extension number
@@ -647,6 +651,8 @@
 					$voicemail_file = $row["voicemail_file"];
 					$voicemail_local_after_email = $row["voicemail_local_after_email"];
 					$voicemail_enabled = $row["voicemail_enabled"];
+					$voicemail_description = $row["voicemail_description"];
+					$voicemail_tutorial = $row["voicemail_tutorial"];
 				}
 				unset ($prep_statement);
 			//clean the variables
@@ -724,6 +730,7 @@
 
 //set the defaults
 	if (strlen($limit_max) == 0) { $limit_max = '5'; }
+	if (strlen($limit_destination) == 0) { $limit_destination = 'error/user_busy'; }
 	if (strlen($call_timeout) == 0) { $call_timeout = '30'; }
 	if (strlen($call_screen_enabled) == 0) { $call_screen_enabled = 'false'; }
 
@@ -1278,7 +1285,7 @@
 	echo "    ".$text['label-limit_max']."\n";
 	echo "</td>\n";
 	echo "<td class='vtable' align='left'>\n";
-	echo "    <input class='formfld' type='number' name='limit_max' maxlength='255' min='0' step='1' value=\"$limit_max\">\n";
+	echo "    <input class='formfld' type='text' name='limit_max' maxlength='255' value=\"$limit_max\">\n";
 	echo "<br />\n";
 	echo $text['description-limit_max']."\n";
 	echo "</td>\n";
@@ -1298,6 +1305,7 @@
 	if (permission_exists('voicemail_edit') && is_dir($_SERVER["DOCUMENT_ROOT"].PROJECT_PATH.'/app/voicemails')) {
 		echo "<tr>\n";
 		echo "<td class='vncell' valign='top' align='left' nowrap='nowrap'>\n";
+		echo "<input type='hidden' name='voicemail_description' value='".$voicemail_description."'>\n";
 		echo "    ".$text['label-voicemail_enabled']."\n";
 		echo "</td>\n";
 		echo "<td class='vtable' align='left'>\n";

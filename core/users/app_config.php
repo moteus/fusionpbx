@@ -1,4 +1,5 @@
 <?php
+
 	//application details
 		$apps[$x]['name'] = "User Manager";
 		$apps[$x]['uuid'] = "112124b3-95c2-5352-7e9d-d14c0b88f207";
@@ -19,7 +20,7 @@
 		$apps[$x]['description']['pt-br'] = "";
 
 	//permission details
-		$y = 0;
+		$y=0;
 		$apps[$x]['permissions'][$y]['name'] = "user_view";
 		$apps[$x]['permissions'][$y]['menu']['uuid'] = "0d57cc1e-1874-47b9-7ddd-fe1f57cec99b";
 		$apps[$x]['permissions'][$y]['groups'][] = "admin";
@@ -62,10 +63,21 @@
 		$apps[$x]['permissions'][$y]['name'] = "user_setting_category_edit";
 		$apps[$x]['permissions'][$y]['groups'][] = "superadmin";
 
+	//default settings
+		$y=0;
+		$apps[$x]['default_settings'][$y]['default_setting_uuid'] = '38cf53d2-5fae-43ed-be93-33b0a5cc1c38';
+		$apps[$x]['default_settings'][$y]['default_setting_category'] = 'user';
+		$apps[$x]['default_settings'][$y]['default_setting_subcategory'] = 'unique';
+		$apps[$x]['default_settings'][$y]['default_setting_name'] = 'text';
+		$apps[$x]['default_settings'][$y]['default_setting_value'] = 'global';
+		$apps[$x]['default_settings'][$y]['default_setting_enabled'] = 'false';
+		$apps[$x]['default_settings'][$y]['default_setting_description'] = '';
+
 	//schema details
-		$y = 0; //table array index
-		$z = 0; //field array index
-		$apps[$x]['db'][$y]['table'] = "v_users";
+		$y=0;
+		$apps[$x]['db'][$y]['table']['name'] = "v_users";
+		$apps[$x]['db'][$y]['table']['parent'] = "";
+		$z=0;
 		$apps[$x]['db'][$y]['fields'][$z]['name'] = "user_uuid";
 		$apps[$x]['db'][$y]['fields'][$z]['type']['pgsql'] = "uuid";
 		$apps[$x]['db'][$y]['fields'][$z]['type']['sqlite'] = "text";
@@ -150,9 +162,10 @@
 		$apps[$x]['db'][$y]['fields'][$z]['type'] = "text";
 		$apps[$x]['db'][$y]['fields'][$z]['description']['en-us'] = "";
 
-		$y = 1; //table array index
-		$z = 0; //field array index
-		$apps[$x]['db'][$y]['table'] = "v_user_settings";
+		$y=1;
+		$apps[$x]['db'][$y]['table']['name'] = "v_user_settings";
+		$apps[$x]['db'][$y]['table']['parent'] = "";
+		$z=0;
 		$apps[$x]['db'][$y]['fields'][$z]['name'] = "user_setting_uuid";
 		$apps[$x]['db'][$y]['fields'][$z]['type']['pgsql'] = "uuid";
 		$apps[$x]['db'][$y]['fields'][$z]['type']['sqlite'] = "text";
@@ -202,4 +215,5 @@
 		$apps[$x]['db'][$y]['fields'][$z]['name'] = "user_setting_description";
 		$apps[$x]['db'][$y]['fields'][$z]['type'] = "text";
 		$apps[$x]['db'][$y]['fields'][$z]['description']['en-us'] = "";
+
 ?>

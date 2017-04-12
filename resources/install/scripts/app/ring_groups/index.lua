@@ -73,6 +73,11 @@ local log = require "resources.functions.log".ring_group
 		call_direction = "local";
 	end
 
+--set ring ready
+	if (session:ready()) then
+		session:execute("ring_ready", "");
+	end
+
 --define additional variables
 	uuids = "";
 	external = "false";
@@ -127,10 +132,10 @@ local log = require "resources.functions.log".ring_group
 --set the caller id
 	if (session:ready()) then
 		if (string.len(ring_group_cid_name_prefix) > 0) then
-			session:execute("set", "effective_caller_id_name="..ring_group_cid_name_prefix.."#"..caller_id_name);
+			session:execute("export", "effective_caller_id_name="..ring_group_cid_name_prefix.."#"..caller_id_name);
 		end
 		if (string.len(ring_group_cid_number_prefix) > 0) then
-			session:execute("set", "effective_caller_id_number="..ring_group_cid_number_prefix..caller_id_number);
+			session:execute("export", "effective_caller_id_number="..ring_group_cid_number_prefix..caller_id_number);
 		end
 	end
 
@@ -628,6 +633,7 @@ local log = require "resources.functions.log".ring_group
 								or session:getVariable("originate_disposition") == "NORMAL_TEMPORARY_FAILURE"
 								or session:getVariable("originate_disposition") == "NO_ROUTE_DESTINATION"
 								or session:getVariable("originate_disposition") == "USER_BUSY"
+								or session:getVariable("originate_disposition") == "RECOVERY_ON_TIMER_EXPIRE"
 								or session:getVariable("originate_disposition") == "failure"
 							) then
 								--send missed call notification

@@ -111,9 +111,9 @@
 	echo "	<input type='hidden' name='bridge_uuid' value='".$bridge_uuid."'>\n";
 	if (is_array($_SESSION['cdr']['field'])) {
 		foreach ($_SESSION['cdr']['field'] as $field) {
-			if (isset($_REQUEST[$field])) {
-				$array = explode(",", $field);
-				$field_name = $array[count($array) - 1];
+			$array = explode(",", $field);
+			$field_name = $array[count($array) - 1];
+			if (isset($_REQUEST[$field_name])) {
 				echo "	<input type='hidden' name='$field_name' value='".$$field_name."'>\n";
 			}
 		}
@@ -122,7 +122,7 @@
 		echo "	<input type='hidden' name='order_by' value='".$order_by."'>\n";
 		echo "	<input type='hidden' name='order' value='".$order."'>\n";
 	}
-	if (permission_exists('xml_cdr_all' && $_REQUEST['showall'] == 'true')) {
+	if (permission_exists('xml_cdr_all') && $_REQUEST['showall'] == 'true') {
 		echo "	<input type='hidden' name='showall' value='true'>\n";
 	}
 	echo "	<table cellpadding='0' cellspacing='0' border='0'>\n";
