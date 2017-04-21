@@ -17,7 +17,7 @@
 
 	The Initial Developer of the Original Code is
 	Mark J Crane <markjcrane@fusionpbx.com>
-	Copyright (C) 2016 All Rights Reserved.
+	Copyright (C) 2017 All Rights Reserved.
 
 */
 
@@ -125,6 +125,16 @@
 //get the extensions
 	$extensions = $_SESSION['user']['extension'];
 
+//get the destinations
+	$sql = "select destination_caller_id_name, destination_caller_id_number from v_destinations ";
+	$sql .= "where domain_uuid = '".check_str($_SESSION['domain_uuid'])."' ";
+	$sql .= "and destination_type = 'inbound' ";
+	$sql .= "order by destination_number asc ";
+	$prep_statement = $db->prepare(check_sql($sql));
+	$prep_statement->execute();
+	$destinations = $prep_statement->fetchAll(PDO::FETCH_ASSOC);
+	unset ($sql, $prep_statement);
+
 //show the content
 	echo "<form name='caller_id_form' id='caller_id_form' method='post' action='/app/extensions/extension_dashboard.php'>\n";
 
@@ -182,11 +192,49 @@
 			echo "				</td>\n";
 
 			echo "				<td class='row_style".$c." row_style_slim'>\n";
-			echo "					<input class='formfld' style='min-width: 50px; max-width: 100px;' type='text' name='extensions[".$x."][outbound_caller_id_name]' maxlength='255' value=\"".$row['outbound_caller_id_name']."\">\n";
+			if (permission_exists('outbound_caller_id_select')) {
+				if (count($destinations) > 0) {
+					echo "	<select name='extensions[".$x."][outbound_caller_id_name]' id='outbound_caller_id_name' class='formfld'>\n";
+					echo "	<option value=''></option>\n";
+					foreach ($destinations as &$row) {
+						if(strlen($row['destination_caller_id_name']) > 0){
+							if ($outbound_caller_id_name == $row['destination_caller_id_name']) {
+								echo "		<option value='".$row['destination_caller_id_name']."' selected='selected'>".$row['destination_caller_id_name']."</option>\n";
+							}
+							else {
+								echo "		<option value='".$row['destination_caller_id_name']."'>".$row['destination_caller_id_name']."</option>\n";
+							}
+						}
+					}
+					echo "		</select>\n";
+				}
+			}
+			else {
+					echo "					<input class='formfld' style='min-width: 50px; max-width: 100px;' type='text' name='extensions[".$x."][outbound_caller_id_name]' maxlength='255' value=\"".$row['outbound_caller_id_name']."\">\n";
+			}
 			echo "				</td>\n";
 
 			echo "				<td class='row_style".$c." row_style_slim'>\n";
-			echo "					<input class='formfld' style='min-width: 50px; max-width: 100px;' type='text' name='extensions[".$x."][outbound_caller_id_number]' maxlength='255' value=\"".$row['outbound_caller_id_number']."\">\n";
+			if (permission_exists('outbound_caller_id_select')) {
+				if (count($destinations) > 0) {
+					echo "	<select name='extensions[".$x."][outbound_caller_id_number]' id='outbound_caller_id_number' class='formfld'>\n";
+					echo "	<option value=''></option>\n";
+					foreach ($destinations as &$row) {
+						if(strlen($row['destination_caller_id_number']) > 0){
+							if ($outbound_caller_id_number == $row['destination_caller_id_number']) {
+								echo "		<option value='".$row['destination_caller_id_number']."' selected='selected'>".$row['destination_caller_id_number']."</option>\n";
+							}
+							else {
+								echo "		<option value='".$row['destination_caller_id_number']."'>".$row['destination_caller_id_number']."</option>\n";
+							}
+						}
+					}
+					echo "		</select>\n";
+				}
+			}
+			else {
+					echo "					<input class='formfld' style='min-width: 50px; max-width: 100px;' type='text' name='extensions[".$x."][outbound_caller_id_number]' maxlength='255' value=\"".$row['outbound_caller_id_number']."\">\n";
+			}
 			echo "				</td>\n";
 
 		//end the row
