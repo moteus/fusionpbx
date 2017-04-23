@@ -284,7 +284,7 @@ $text['label-timeout_destination']['uk'] = "";
 $text['label-timeout_destination']['de-de'] = "Time-Out Ziel";
 $text['label-timeout_destination']['de-at'] = "Time-Out Ziel";
 $text['label-timeout_destination']['he'] = "";
-$text['label-timeout_destination']['ru-ru'] = "Тайм-аут назначения";
+$text['label-timeout_destination']['ru-ru'] = "Переадресация по Тайм-ауту";
 
 $text['label-timeout']['en-us'] = "Timeout";
 $text['label-timeout']['es-cl'] = "Timeout";
@@ -297,7 +297,7 @@ $text['label-timeout']['uk'] = "Таймаут";
 $text['label-timeout']['de-de'] = "Time-Out";
 $text['label-timeout']['de-at'] = "Time-Out";
 $text['label-timeout']['he'] = "";
-$text['label-timeout']['ru-ru'] = "Таймаут";
+$text['label-timeout']['ru-ru'] = "Тайм-аут";
 
 $text['label-text']['en-us'] = "Text";
 $text['label-text']['es-cl'] = "Texto";
@@ -418,7 +418,7 @@ $text['label-forward_destination']['uk'] = "";
 $text['label-forward_destination']['de-de'] = "Nummer";
 $text['label-forward_destination']['de-at'] = "Nummer";
 $text['label-forward_destination']['he'] = "מספר";
-$text['label-forward_destination']['ru-ru'] = "Число";
+$text['label-forward_destination']['ru-ru'] = "Номер";
 
 $text['label-extension']['en-us'] = "Extension";
 $text['label-extension']['es-cl'] = "Extensión";
@@ -495,7 +495,7 @@ $text['label-destination_timeout']['uk'] = "Таймаут";
 $text['label-destination_timeout']['de-de'] = "Abwurfzeit";
 $text['label-destination_timeout']['de-at'] = "Abwurfzeit";
 $text['label-destination_timeout']['he'] = "";
-$text['label-destination_timeout']['ru-ru'] = "Таймаут";
+$text['label-destination_timeout']['ru-ru'] = "Тайм-аут";
 
 $text['label-destination_prompt_confirm']['en-us'] = "Confirm";
 $text['label-destination_prompt_confirm']['es-cl'] = "Confirmar";

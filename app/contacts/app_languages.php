@@ -1009,7 +1009,7 @@ $text['label-primary']['sv-se'] = "Primär";
 $text['label-primary']['de-de'] = "Primär";
 $text['label-primary']['de-at'] = "Primär";
 $text['label-primary']['he'] = "ראשי";
-$text['label-primary']['ru-ru'] = "Первичный";
+$text['label-primary']['ru-ru'] = "Основной";
 
 $text['label-phone_type']['en-us'] = "Type";
 $text['label-phone_type']['es-cl'] = "Tipo";
@@ -1087,7 +1087,7 @@ $text['label-phone_label']['sv-se'] = "Etikett";
 $text['label-phone_label']['de-de'] = "Kennzeichnung";
 $text['label-phone_label']['de-at'] = "Kennzeichnung";
 $text['label-phone_label']['he'] = "";
-$text['label-phone_label']['ru-ru'] = "метка";
+$text['label-phone_label']['ru-ru'] = "Метка";
 
 $text['label-phone_extension']['en-us'] = "Extension";
 $text['label-phone_extension']['es-cl'] = "Extensión";
@@ -1367,7 +1367,7 @@ $text['label-email_label']['sv-se'] = "Etikett";
 $text['label-email_label']['de-de'] = "Kennzeichnung";
 $text['label-email_label']['de-at'] = "Kennzeichnung";
 $text['label-email_label']['he'] = "";
-$text['label-email_label']['ru-ru'] = "метка";
+$text['label-email_label']['ru-ru'] = "Метка";
 
 $text['label-email_description']['en-us'] = "Description";
 $text['label-email_description']['es-cl'] = "Descripción";
@@ -1680,7 +1680,7 @@ $text['label-contact_relation_label']['sv-se'] = "Relation";
 $text['label-contact_relation_label']['de-de'] = "Beziehung";
 $text['label-contact_relation_label']['de-at'] = "Beziehung";
 $text['label-contact_relation_label']['he'] = "";
-$text['label-contact_relation_label']['ru-ru'] = "отношение";
+$text['label-contact_relation_label']['ru-ru'] = "Отношение";
 
 $text['label-contact_relation_contact']['en-us'] = "Contact";
 $text['label-contact_relation_contact']['es-cl'] = "Contacto";
@@ -1783,7 +1783,7 @@ $text['label-contact_name_middle']['sv-se'] = "Mellan";
 $text['label-contact_name_middle']['de-de'] = "Mittel";
 $text['label-contact_name_middle']['de-at'] = "Mittel";
 $text['label-contact_name_middle']['he'] = "שם אמצעי";
-$text['label-contact_name_middle']['ru-ru'] = "средний";
+$text['label-contact_name_middle']['ru-ru'] = "Отчество";
 
 $text['label-contact_name_given']['en-us'] = "First Name";
 $text['label-contact_name_given']['es-cl'] = "Primer Nombre";
@@ -2043,7 +2043,7 @@ $text['label-address_address']['sv-se'] = "Adress";
 $text['label-address_address']['de-de'] = "Adresse";
 $text['label-address_address']['de-at'] = "Adresse";
 $text['label-address_address']['he'] = "כתובת";
-$text['label-address_address']['ru-ru'] = "Адреса";
+$text['label-address_address']['ru-ru'] = "Адрес";
 
 $text['header_contact_times']['en-us'] = "Times";
 $text['header_contact_times']['es-cl'] = "Veces";

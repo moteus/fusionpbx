@@ -279,7 +279,7 @@ $text['label-rate']['de-de'] = "Abtastrate";
 $text['label-rate']['de-at'] = "Abtastrate";
 $text['label-rate']['he'] = "דגימת קול";
 $text['label-rate']['it-it'] = "Campionamento";
-$text['label-rate']['ru-ru'] = "Выборка";
+$text['label-rate']['ru-ru'] = "Частота семплирования";
 
 $text['label-play']['en-us'] = "Play";
 $text['label-play']['es-cl'] = "Reproducir";

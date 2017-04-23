@@ -61,7 +61,7 @@ $text['title-call_groups']['ro'] = "Grup apelare";
 $text['title-call_groups']['ar-eg'] = "";
 $text['title-call_groups']['he'] = "קבוצת חיוג";
 $text['title-call_groups']['it-it'] = "Gruppi di Chiamata";
-$text['title-call_groups']['ru-ru'] = "Группа Вызовов";
+$text['title-call_groups']['ru-ru'] = "Группы Вызовов";
 
 $text['option-voicemail_file_listen']['en-us'] = "Listen Link (Login Required)";
 $text['option-voicemail_file_listen']['es-cl'] = "Escuchar Link (Se requiere entrar)";
@@ -1355,7 +1355,7 @@ $text['description-toll_allow']['ro'] = "Introduceți tipurile de destinație ai
 $text['description-toll_allow']['ar-eg'] = "";
 $text['description-toll_allow']['he'] = "";
 $text['description-toll_allow']['it-it'] = "Inserisci il tipo di tariffa permessa.  (Esempio: urbana,internazionale,interna)";
-$text['description-toll_allow']['ru-ru'] = "Введите здесь доступные значения. (Примеры: внутренние, международные, местные)";
+$text['description-toll_allow']['ru-ru'] = "Введите здесь доступные значения. (Примеры: domestic,international,local)";
 
 $text['description-sip_force_expires']['en-us'] = "To prevent stale registrations SIP Force expires can override the client expire.";
 $text['description-sip_force_expires']['es-cl'] = "Seleccione si desea reescribir solo el puerto de contacto, o la dirección IP junto con el puerto.";
@@ -1371,7 +1371,7 @@ $text['description-sip_force_expires']['ro'] = "Pentru a preveni înregistrăril
 $text['description-sip_force_expires']['ar-eg'] = "";
 $text['description-sip_force_expires']['he'] = "";
 $text['description-sip_force_expires']['it-it'] = "Per prevenire le registrazioni SIP vecchie, questa impostazione può sovrascive il valore di scadenza del client.";
-$text['description-sip_force_expires']['ru-ru'] = "Чтобы предотвратить несвоевременную регистрацию, срок действия SIP Force может отменять истечение срока действия клиента.";
+$text['description-sip_force_expires']['ru-ru'] = "Чтобы предотвратить частую регистрацию, срок действия SIP Force может отменять истечение срока действия клиента.";
 
 $text['description-sip_force_contact']['en-us'] = "Choose whether to rewrite the contact port, or rewrite both the contact IP and port.";
 $text['description-sip_force_contact']['es-cl'] = "Seleccione si desea reescribir solo el puerto de contacto, o la dirección IP junto con el puerto.";
@@ -1579,7 +1579,7 @@ $text['description-absolute_codec_string']['ro'] = "";
 $text['description-absolute_codec_string']['ar-eg'] = "";
 $text['description-absolute_codec_string']['he'] = "";
 $text['description-absolute_codec_string']['it-it'] = "Stringa codec per l'interno";
-$text['description-absolute_codec_string']['ru-ru'] = "Последовательность выбора кодеков для Внутреннего НОмера";
+$text['description-absolute_codec_string']['ru-ru'] = "Последовательность выбора кодеков для Внутреннего Номера";
 
 $text['description-force_ping']['en-us'] = "Use OPTIONS to detect if extension is reacheable";
 $text['description-force_ping']['es-cl'] = "";
@@ -1595,7 +1595,7 @@ $text['description-force_ping']['ro'] = "";
 $text['description-force_ping']['ar-eg'] = "";
 $text['description-force_ping']['he'] = "";
 $text['description-force_ping']['it-it'] = "Usa OPTIONS per verificare se l'interno è raggiungibile";
-$text['description-force_ping']['ru-ru'] = "Используйте ОПЦИИ, чтобы определить доступность Внутреннего Номера";
+$text['description-force_ping']['ru-ru'] = "Использовать OPTIONS, чтобы определить доступность Внутреннего Номера";
 
 $text['description-missed_call']['en-us'] = "Select the notification type, and enter the appropriate destination.";
 $text['description-missed_call']['es-cl'] = "Seleccione el tipo de notificación, y entrar en el destino apropiado.";
@@ -1915,7 +1915,7 @@ $text['description-call_group']['ro'] = "Introduceți grupul de apelare din care
 $text['description-call_group']['ar-eg'] = "";
 $text['description-call_group']['he'] = "";
 $text['description-call_group']['it-it'] = "Inserisci qui il gruppo di chiamata. I gruppi predefiniti disponibili: sales, support, billing.";
-$text['description-call_group']['ru-ru'] = "Войдите в группу пользователей. Группы доступные по умолчанию: продажа, поддержка, бухгалтерия.";
+$text['description-call_group']['ru-ru'] = "Войдите в группу пользователей. Группы доступные по умолчанию: sales, support, billing.";
 
 $text['description-auth_acl']['en-us'] = "Enter the Auth ACL here.";
 $text['description-auth_acl']['es-cl'] = "Ingrese el ACL de autenticación aquí";

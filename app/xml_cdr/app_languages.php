@@ -381,7 +381,7 @@ $text['label-to']['sv-se'] = "Till";
 $text['label-to']['uk'] = "До";
 $text['label-to']['de-at'] = "Bis";
 $text['label-to']['he'] = "ל";
-$text['label-to']['ru-ru'] = "Кому";
+$text['label-to']['ru-ru'] = "До";
 
 $text['label-summary']['en-us'] = "Summary";
 $text['label-summary']['es-cl'] = "Sumario";
@@ -417,7 +417,7 @@ $text['label-start_range']['sv-se'] = "Intervall start";
 $text['label-start_range']['uk'] = "";
 $text['label-start_range']['de-at'] = "Start Bereich";
 $text['label-start_range']['he'] = "החל מטווח";
-$text['label-start_range']['ru-ru'] = "Начальный диапазон";
+$text['label-start_range']['ru-ru'] = "Начало вызова";
 
 $text['label-start_date_time']['en-us'] = "Start Date/Time";
 $text['label-start_date_time']['es-cl'] = "Fecha/Hora de Comienzo";
@@ -813,7 +813,7 @@ $text['label-end_range']['sv-se'] = "Intervall Slut";
 $text['label-end_range']['uk'] = "";
 $text['label-end_range']['de-at'] = "Ende Bereich";
 $text['label-end_range']['he'] = "עד טווח";
-$text['label-end_range']['ru-ru'] = "Конечный диапазон";
+$text['label-end_range']['ru-ru'] = "Окончание вызова";
 
 $text['label-end_date_time']['en-us'] = "End Date/Time";
 $text['label-end_date_time']['es-cl'] = "Fecha/Hora";
@@ -1007,7 +1007,7 @@ $text['label-call-statistics-description']['sv-se'] = "Detaljerad Samtals-statis
 $text['label-call-statistics-description']['uk'] = "";
 $text['label-call-statistics-description']['de-at'] = "Anruf Statistiken fassen alle Anrufinformationen zusammen.";
 $text['label-call-statistics-description']['he'] = "";
-$text['label-call-statistics-description']['ru-ru'] = "Статистика записей звонков обобщает информацию о вызовах.";
+$text['label-call-statistics-description']['ru-ru'] = "Обобщенная информацию о вызовах.";
 
 $text['label-call-statistics']['en-us'] = "Call Detail Record Statistics";
 $text['label-call-statistics']['es-cl'] = "Estadísticas de ñps  detalles de grabación de llamadas";
@@ -1019,7 +1019,7 @@ $text['label-call-statistics']['sv-se'] = "Detaljerad Samtals-statistik";
 $text['label-call-statistics']['uk'] = "";
 $text['label-call-statistics']['de-at'] = "Anruf Statistiken";
 $text['label-call-statistics']['he'] = "";
-$text['label-call-statistics']['ru-ru'] = "Статистика записей вызовов";
+$text['label-call-statistics']['ru-ru'] = "Статистика вызовов";
 
 $text['label-call-flow-5']['en-us'] = "Call Flow: Times";
 $text['label-call-flow-5']['es-cl'] = "Flujos de llamada: Tiempos";
@@ -1178,7 +1178,7 @@ $text['label-answer_range']['sv-se'] = "Svarstid";
 $text['label-answer_range']['uk'] = "";
 $text['label-answer_range']['de-at'] = "Antwort Rate";
 $text['label-answer_range']['he'] = "";
-$text['label-answer_range']['ru-ru'] = "Диапазон ответов";
+$text['label-answer_range']['ru-ru'] = "Отвечен";
 
 $text['label-answer']['en-us'] = "Answer";
 $text['label-answer']['es-cl'] = "Respuesta";
@@ -1298,7 +1298,7 @@ $text['description-3']['sv-se'] = "Använd fälten för att filtrera fram det ö
 $text['description-3']['uk'] = "";
 $text['description-3']['de-at'] = "Benutzen Sie die Felder um Informationen betreffend spezifischer Anrufe zu filtern.";
 $text['description-3']['he'] = "";
-$text['description-3']['ru-ru'] = "Используйте поля для фильтрации информации для конкретных записей звонков, которые вам нужны.";
+$text['description-3']['ru-ru'] = "Используйте поля для фильтрации информации для конкретных записей вызовов, которые вам нужны.";
 
 $text['description-2']['en-us'] = "The information contains source, destination, duration, and other useful call details.";
 $text['description-2']['es-cl'] = "La información contiene origen, destino, duración y otra información útil.";
