@@ -80,9 +80,9 @@ $text['label-ping']['pt-br'] = "Sibilo";
 $text['label-ping']['pl'] = "Świst";
 $text['label-ping']['sv-se'] = "Ping";
 $text['label-ping']['uk'] = "пінг";
+$text['label-ping']['ru-ru'] = "Ping";
 $text['label-ping']['de-de'] = "Ping";
 $text['label-ping']['de-at'] = "Ping";
-$text['label-ping']['ru-ru'] = "Ping";
 
 $text['label-message']['en-us'] = "Invalid Profile!";
 $text['label-message']['es-cl'] = "&iexcl;Perfil Inválido!";
@@ -164,9 +164,9 @@ $text['label-domain']['pt-br'] = "Dominio";
 $text['label-domain']['pl'] = "Domena";
 $text['label-domain']['sv-se'] = "Domän";
 $text['label-domain']['uk'] = "Домен";
+$text['label-domain']['ru-ru'] = "Домен";
 $text['label-domain']['de-de'] = "Domäne";
 $text['label-domain']['de-at'] = "Domäne";
-$text['label-domain']['ru-ru'] = "Домен";
 
 $text['label-agent']['en-us'] = "Agent";
 $text['label-agent']['es-cl'] = "Agente";

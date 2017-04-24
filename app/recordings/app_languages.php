@@ -105,9 +105,9 @@ $text['label-play']['pt-br'] = "Tocar";
 $text['label-play']['pl'] = "Odtwórz";
 $text['label-play']['sv-se'] = "Spela Upp";
 $text['label-play']['uk'] = "Відтворити";
+$text['label-play']['ru-ru'] = "Проиграть";
 $text['label-play']['de-de'] = "Abspielen";
 $text['label-play']['de-at'] = "Abspielen";
-$text['label-play']['ru-ru'] = "Проиграть";
 
 $text['label-pause']['en-us'] = "Pause";
 $text['label-pause']['es-cl'] = "Pausa";
@@ -165,9 +165,9 @@ $text['label-edit-recording']['pt-br'] = "Por favor indique: Nome da gravação 
 $text['label-edit-recording']['pl'] = "Wprowadź: Nazwę nagrania (do odsłuchania)";
 $text['label-edit-recording']['sv-se'] = "Ange: Namn på inspelning (spela upp)";
 $text['label-edit-recording']['uk'] = "";
+$text['label-edit-recording']['ru-ru'] = "Укажите: название записи (для воспроизведения)";
 $text['label-edit-recording']['de-de'] = "Bitte geben Sie folgendes an: Name der Aufnahme (Abspielen)";
 $text['label-edit-recording']['de-at'] = "Bitte geben Sie folgendes an: Name der Aufnahme (Abspielen)";
-$text['label-edit-recording']['ru-ru'] = "Укажите: название записи (для воспроизведения)";
 
 $text['label-edit-file']['en-us'] = "Please provide: Filename (download)";
 $text['label-edit-file']['es-cl'] = "Por favor indique: Nombre de archivo (descargar)";
@@ -177,9 +177,9 @@ $text['label-edit-file']['pt-br'] = "Por favor indique: Nome de ficheiro (downlo
 $text['label-edit-file']['pl'] = "Wprowadź: Nazwę pliku (do pobrania)";
 $text['label-edit-file']['sv-se'] = "Ange: Filnamn (ladda ned)";
 $text['label-edit-file']['uk'] = "";
+$text['label-edit-file']['ru-ru'] = "Укажите: имя файла (для загрузки)";
 $text['label-edit-file']['de-de'] = "Bitte geben Sie folgendes an: Dateiname (Herunterladen)";
 $text['label-edit-file']['de-at'] = "Bitte geben Sie folgendes an: Dateiname (Herunterladen)";
-$text['label-edit-file']['ru-ru'] = "Укажите: имя файла (для загрузки)";
 
 $text['label-download']['en-us'] = "Download";
 $text['label-download']['es-cl'] = "Descargar";
@@ -189,9 +189,9 @@ $text['label-download']['pt-br'] = "Download";
 $text['label-download']['pl'] = "Pobierz";
 $text['label-download']['sv-se'] = "Ladda Ned";
 $text['label-download']['uk'] = "Завантажини";
+$text['label-download']['ru-ru'] = "Загрузить";
 $text['label-download']['de-de'] = "Herunterladen";
 $text['label-download']['de-at'] = "Herunterladen";
-$text['label-download']['ru-ru'] = "Загрузить";
 
 $text['header']['en-us'] = "Upload Recording";
 $text['header']['es-cl'] = "Subir Grabación";
