@@ -11,9 +11,9 @@
 		$apps[$x]['description']['en-us'] = "Used Configure SIP extensions.";
 		$apps[$x]['description']['es-cl'] = "Utilizado para configurar Extensiones SIP.";
 		$apps[$x]['description']['es-mx'] = "Utilizado para configurar Extensiones SIP.";
-		$apps[$x]['description']['de-de'] = "";
+		$apps[$x]['description']['de-de'] = "Wird verwendet um SIP Nebenstellen zu konfigurieren.";
 		$apps[$x]['description']['de-ch'] = "";
-		$apps[$x]['description']['de-at'] = "";
+		$apps[$x]['description']['de-at'] = "Wird verwendet um SIP Nebenstellen zu konfigurieren.";
 		$apps[$x]['description']['fr-fr'] = "Utilisé pour configurer des extentions SIP";
 		$apps[$x]['description']['fr-ca'] = "Utilisé pour configurer des éxtentions SIP";
 		$apps[$x]['description']['fr-ch'] = "";
@@ -151,6 +151,15 @@
 		$apps[$x]['default_settings'][$y]['default_setting_value'] = '{sip_invite_domain=${domain_name},leg_timeout=${call_timeout},presence_id=${dialed_user}@${dialed_domain}}${sofia_contact(*/${dialed_user}@${dialed_domain})}';
 		$apps[$x]['default_settings'][$y]['default_setting_enabled'] = 'false';
 		$apps[$x]['default_settings'][$y]['default_setting_description'] = '';
+		$y++;
+		$apps[$x]['default_settings'][$y]['default_setting_uuid'] = '3eeb3757-f7bb-437a-9021-8ccf3f27c98b';
+		$apps[$x]['default_settings'][$y]['default_setting_category'] = 'limit';
+		$apps[$x]['default_settings'][$y]['default_setting_subcategory'] = 'extensions';
+		$apps[$x]['default_settings'][$y]['default_setting_name'] = 'numeric';
+		$apps[$x]['default_settings'][$y]['default_setting_value'] = '3';
+		$apps[$x]['default_settings'][$y]['default_setting_enabled'] = 'false';
+		$apps[$x]['default_settings'][$y]['default_setting_description'] = '';
+		$y++;
 
 	//schema details
 		$y=0;
