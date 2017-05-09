@@ -384,10 +384,10 @@
 												freeswitch.consoleLog("notice", "[xml_handler-directory.lua] local_host and database_host are the same\n");
 											else
 												local profile, proxy = "internal", database_hostname;
-												local peer = CLASTER_PEERS and CLASTER_PEERS[database_hostname];
+												local peer = CLUSTER_PEERS and CLUSTER_PEERS[proxy];
 												if peer then
 													if type(peer) == "string" then
-														proxy = peer;
+														profile = peer;
 													else
 														profile = peer[1] or profile;
 														proxy = peer[2] or proxy;

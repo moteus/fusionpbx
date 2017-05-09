@@ -60,6 +60,15 @@
 	local function make_proxy_call(destination, call_hostname)
 		destination = destination .. "@" .. domain_name
 		local profile, proxy = "internal", call_hostname;
+		local peer = CLUSTER_PEERS and CLUSTER_PEERS[proxy];
+		if peer then
+			if type(peer) == "string" then
+				profile = peer;
+			else
+				profile = peer[1] or profile;
+				proxy = peer[2] or proxy;
+			end
+		end
 
 		local sip_auth_username = session:getVariable("sip_auth_username");
 		local sip_auth_password = api:execute("user_data", sip_auth_username .. "@" .. domain_name .." param password");
