@@ -91,6 +91,7 @@
 	echo "	<input type='hidden' name='call_result' value='".$call_result."'>\n";
 	echo "	<input type='hidden' name='caller_extension_uuid' value='".$caller_extension_uuid."'>\n";
 	echo "	<input type='hidden' name='caller_id_number' value='".$caller_id_number."'>\n";
+	echo "	<input type='hidden' name='caller_destination' value='".$caller_destination."'>\n";
 	echo "	<input type='hidden' name='destination_number' value='".$destination_number."'>\n";
 	echo "	<input type='hidden' name='context' value='".$context."'>\n";
 	echo "	<input type='hidden' name='answer_stamp_begin' value='".$answer_stamp_begin."'>\n";
@@ -109,6 +110,7 @@
 	echo "	<input type='hidden' name='remote_media_ip' value='".$remote_media_ip."'>\n";
 	echo "	<input type='hidden' name='network_addr' value='".$network_addr."'>\n";
 	echo "	<input type='hidden' name='bridge_uuid' value='".$bridge_uuid."'>\n";
+	echo "	<input type='hidden' name='leg' value='".$leg."'>\n";
 	if (is_array($_SESSION['cdr']['field'])) {
 		foreach ($_SESSION['cdr']['field'] as $field) {
 			$array = explode(",", $field);
@@ -317,6 +319,14 @@
 					echo "			</select>\n";
 					echo "		</td>\n";
 					echo "	</tr>\n";
+					echo "	<tr>\n";
+					echo "		<td class='vncell' valign='top' nowrap='nowrap'>\n";
+					echo "			".$text['label-caller-destination']."\n";
+					echo "		</td>\n";
+					echo "		<td class='vtable' align='left'>\n";
+					echo "			<input type='text' class='formfld' name='caller_destination' value='$caller_destination'>\n";
+					echo "		</td>\n";
+					echo "	</tr>\n";
 					echo "</table>\n";
 
 				echo "</td>";
@@ -366,6 +376,7 @@
 		}
 		echo th_order_by('caller_id_name', $text['label-cid-name'], $order_by, $order, null, null, $param);
 		echo th_order_by('caller_id_number', $text['label-source'], $order_by, $order, null, null, $param);
+		echo th_order_by('caller_destination', $text['label-caller_destination'], $order_by, $order, null, null, $param);
 		echo th_order_by('destination_number', $text['label-destination'], $order_by, $order, null, null, $param);
 		if (permission_exists('recording_play') || permission_exists('recording_download')) {
 			echo "<th>".$text['label-recording']."</th>\n";
@@ -514,7 +525,12 @@
 						else { $call_result = 'failed'; }
 					}
 					if (strlen($row['direction']) > 0) {
-						echo "<img src='".PROJECT_PATH."/themes/".$_SESSION['domain']['template']['name']."/images/icon_cdr_".$row['direction']."_".$call_result.".png' width='16' style='border: none; cursor: help;' title='".$text['label-'.$row['direction']].": ".$text['label-'.$call_result]."'>\n";
+						$image_name = "icon_cdr_" . $row['direction'] . "_" . $call_result;
+						if($row['leg'] == 'b'){
+							$image_name .= '_b';
+						}
+						$image_name .= ".png";
+						echo "<img src='".PROJECT_PATH."/themes/".$_SESSION['domain']['template']['name']."/images/$image_name' width='16' style='border: none; cursor: help;' title='".$text['label-'.$row['direction']].": ".$text['label-'.$call_result]. ($row['leg']=='b'?'(b)':'') . "'>\n";
 					}
 				}
 				else { echo "&nbsp;"; }
@@ -535,6 +551,17 @@
 				}
 				else {
 					echo "		".$row['caller_id_number'].' ';
+				}
+				echo "		</a>";
+				echo "	</td>\n";
+			//caller destination
+				echo "	<td valign='top' class='".$row_style[$c]." tr_link_void' nowrap='nowrap'>";
+				echo "		<a href=\"javascript:void(0)\" onclick=\"send_cmd('".PROJECT_PATH."/app/click_to_call/click_to_call.php?src_cid_name=".urlencode($row['caller_id_name'])."&src_cid_number=".urlencode($row['caller_id_number'])."&dest_cid_name=".urlencode($_SESSION['user']['extension'][0]['outbound_caller_id_name'])."&dest_cid_number=".urlencode($_SESSION['user']['extension'][0]['outbound_caller_id_number'])."&src=".urlencode($_SESSION['user']['extension'][0]['user'])."&dest=".urlencode($row['caller_destination'])."&rec=false&ringback=us-ring&auto_answer=true');\">\n";
+				if (is_numeric($row['caller_destination'])) {
+					echo "		".format_phone($row['caller_destination']).' ';
+				}
+				else {
+					echo "		".$row['caller_destination'].' ';
 				}
 				echo "		</a>";
 				echo "	</td>\n";
