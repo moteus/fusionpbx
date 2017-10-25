@@ -64,10 +64,14 @@
 		--say the message date
 			if (session:ready()) then
 				if (string.len(dtmf_digits) == 0) then
-					if (current_time_zone ~= nil) then
-						session:execute("set", "timezone="..current_time_zone.."");
+					if (vm_say_date_time ~= nil) then
+						if (vm_say_date_time == "true") then
+							if (current_time_zone ~= nil) then
+								session:execute("set", "timezone="..current_time_zone.."");
+							end
+							session:say(created_epoch, default_language, "current_date_time", "pronounced");
+						end
 					end
-					session:say(created_epoch, default_language, "current_date_time", "pronounced");
 				end
 			end
 		--get the recordings from the database
@@ -213,6 +217,10 @@
 				elseif (dtmf_digits == "7") then
 					delete_recording(voicemail_id, uuid);
 					message_waiting(voicemail_id, domain_uuid);
+					--fix for extensions that start with 0 (Ex: 0712)
+						if (voicemail_id_copy ~= voicemail_id  and voicemail_id_copy ~= nil) then
+							message_waiting(voicemail_id_copy, domain_uuid);
+						end
 				elseif (dtmf_digits == "8") then
 					forward_to_extension(voicemail_id, uuid);
 					dtmf_digits = '';

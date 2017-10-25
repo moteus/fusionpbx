@@ -17,7 +17,7 @@
 
 	The Initial Developer of the Original Code is
 	Mark J Crane <markjcrane@fusionpbx.com>
-	Copyright (C) 2010 - 2016
+	Copyright (C) 2010 - 2017
 	All Rights Reserved.
 
 	Contributor(s):
@@ -48,10 +48,35 @@ include "root.php";
 			public $count;
 			public $sql;
 			public $result;
+			public $app_name;
+			public $app_uuid;
+			public $domain_uuid;
 
+			/**
+			 * Called when the object is created
+			 */
+			public function __construct() {
+				if (!isset($this->domain_uuid)) {
+					$this->domain_uuid = $_SESSION['domain_uuid'];
+				}
+			}
+		
+			/**
+			 * Called when there are no references to a particular object
+			 * unset the variables used in the class
+			 */
+			public function __destruct() {
+				foreach ($this as $key => $value) {
+					unset($this->$key);
+				}
+			}
+		
+			/**
+			 * Connect to the database
+			 */
 			public function connect() {
 
-				if (strlen($this->type) == 0 && strlen($this->db_name) == 0) {
+				if (strlen($this->db_name) == 0) {
 					//include config.php
 						include "root.php";
 						if (file_exists($_SERVER["PROJECT_ROOT"]."/resources/config.php")) {
@@ -61,7 +86,7 @@ include "root.php";
 						} elseif (file_exists("/etc/fusionpbx/config.php")){
 							//linux
 							include "/etc/fusionpbx/config.php";
-						} elseif (file_exists("/usr/local/etc/fusionpbx/config.php")){
+						} elseif (file_exists("/usr/local/etc/fusionpbx/config.php")) {
 							//bsd
 							include "/usr/local/etc/fusionpbx/config.php";
 						}
@@ -89,6 +114,9 @@ include "root.php";
 				if (strlen($this->driver) == 0) {
 					$this->driver = $this->type;
 				}
+
+				//sanitize the database name
+				$this->db_name = preg_replace('#[^a-zA-Z0-9_\-]#', '', $this->db_name);
 
 				if ($this->driver == "sqlite") {
 					if (strlen($this->db_name) == 0) {
@@ -231,6 +259,9 @@ include "root.php";
 					if (!$this->db) {
 						$this->connect();
 					}
+				//sanitize the names
+					$this->table = preg_replace('#[^a-zA-Z0-9_\-]#', '', $this->table);
+					$this->db_name = preg_replace('#[^a-zA-Z0-9_\-]#', '', $this->db_name);
 				//get the table info
 					if (strlen($this->table) == 0) { return false; }
 					if ($this->type == "sqlite") {
@@ -320,45 +351,97 @@ include "root.php";
 					if (!$this->db) {
 						$this->connect();
 					}
+				//sanitize the name
+					$this->table = preg_replace('#[^a-zA-Z0-9_\-]#', '', $this->table);
 				//get data from the database
 					$sql = "select * from ".$this->table." ";
 					if ($this->where) {
 						$i = 0;
 						if (is_array($this->where)) {
 							foreach($this->where as $row) {
+								//sanitize the name
+								$array['name'] = preg_replace('#[^a-zA-Z0-9_\-]#', '', $array['name']);
+
+								//validate the operator
+								switch ($row['operator']) {
+									case "<": break;
+									case ">": break;
+									case "<=": break;
+									case ">=": break;
+									case "=": break;
+									case ">=": break;
+									case "<>": break;
+									case "!=": break;
+									default:
+										//invalid operator
+										return false;
+								}
+
+								//build the sql
 								if ($i == 0) {
-									$sql .= 'where '.$row['name']." ".$row['operator']." '".$row['value']."' ";
+									//$sql .= 'where '.$row['name']." ".$row['operator']." '".$row['value']."' ";
+									$sql .= 'where '.$row['name']." ".$row['operator']." :".$row['name']." ";
 								}
 								else {
-									$sql .= "and ".$row['name']." ".$row['operator']." '".$row['value']."' ";
+									//$sql .= "and ".$row['name']." ".$row['operator']." '".$row['value']."' ";
+									$sql .= "and ".$row['name']." ".$row['operator']." :".$row['name']." ";
 								}
+
+								//add the name and value to the params array
+								$params[$row['name']] = $row['value'];
+
+								//increment $i
 								$i++;
 							}
 						}
 					}
-					if (count($this->order_by) > 0) {
+					if (is_array($this->order_by)) {
 						$sql .= "order by ";
 						$i = 1;
 						if (is_array($this->order_by)) {
 							foreach($this->order_by as $row) {
+								//sanitize the name
+								$row['name'] = preg_replace('#[^a-zA-Z0-9_\-]#', '', $row['name']);
+
+								//sanitize the order
+								switch ($row['order']) {
+									case "asc":
+										break;
+									case "desc":
+										break;
+									default:
+										$row['order'] = '';
+								}
+
+								//build the sql
 								if (count($this->order_by) == $i) {
 									$sql .= $row['name']." ".$row['order']." ";
 								}
 								else {
 									$sql .= $row['name']." ".$row['order'].", ";
 								}
+
+								//increment $i
 								$i++;
 							}
 						}
 					}
-					if ($this->limit) {
-						$sql .= " limit ".$this->limit." offset ".$this->offset." ";
+
+					//limit
+					if (isset($this->limit) && is_numeric($this->limit)) {
+						$sql .= "limit ".$this->limit." ";
 					}
-					//echo $sql;
+					//offset
+					if (isset($this->offset) && is_numeric($this->offset)) {
+						$sql .= "offset ".$this->offset." ";
+					}
+
 					$prep_statement = $this->db->prepare($sql);
 					if ($prep_statement) {
-						$prep_statement->execute();
-						return $prep_statement->fetchAll(PDO::FETCH_ASSOC);
+						$prep_statement->execute($params);
+						$array = $prep_statement->fetchAll(PDO::FETCH_ASSOC);
+						unset($prep_statement);
+						return $array;
 					}
 					else {
 						return false;
@@ -389,52 +472,65 @@ include "root.php";
 					if (!$this->db) {
 						$this->connect();
 					}
+				//sanitize the table name
+					$this->table = preg_replace('#[^a-zA-Z0-9_\-]#', '', $this->table);
+				//count the fields
+					$field_count = count($this->fields);
 				//add data to the database
 					$sql = "insert into ".$this->table;
 					$sql .= " (";
 					$i = 1;
 					if (is_array($this->fields)) {
 						foreach($this->fields as $name => $value) {
+							$name = preg_replace('#[^a-zA-Z0-9_\-]#', '', $name);
 							if (count($this->fields) == $i) {
-								$sql .= $name." ";
+								$sql .= $name." \n";
 							}
 							else {
-								$sql .= $name.", ";
+								$sql .= $name.", \n";
 							}
 							$i++;
 						}
 					}
-					$sql .= ") ";
-					$sql .= "values ";
-					$sql .= "(";
+					$sql .= ") \n";
+					$sql .= "values \n";
+					$sql .= "(\n";
 					$i = 1;
 					if (is_array($this->fields)) {
 						foreach($this->fields as $name => $value) {
-							if (count($this->fields) == $i) {
+							$name = preg_replace('#[^a-zA-Z0-9_\-]#', '', $name);
+							if ($field_count == $i) {
 								if (strlen($value) > 0) {
-									$sql .= "'".$value."' ";
+									//$sql .= "'".$value."' ";
+									$sql .= ":".$name." \n";
+									$params[$name] = $value;
 								}
 								else {
-									$sql .= "'".$value."' ";
+									$sql .= "null \n";
 								}
 							}
 							else {
 								if (strlen($value) > 0) {
-									$sql .= "'".$value."', ";
+									//$sql .= "'".$value."', ";
+									$sql .= ":".$name.", \n";
+									$params[$name] = $value;
 								}
 								else {
-									$sql .= "null, ";
+									$sql .= "null, \n";
 								}
 							}
 							$i++;
 						}
 					}
-					$sql .= ")";
+					$sql .= ")\n";
+
 				//execute the query, show exceptions
 					$this->db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 					try {
-						$this->sql = $sql;
-						$this->db->exec($sql);
+						//$this->sql = $sql;
+						//$this->db->exec($sql);
+						$prep_statement = $this->db->prepare($sql);
+						$prep_statement->execute($params);
 					}
 					catch(PDOException $e) {
 						echo "<b>Error:</b><br />\n";
@@ -446,8 +542,7 @@ include "root.php";
 						echo "</tr>\n";
 						echo "</table>\n";
 					}
-					unset($this->fields);
-					unset($sql);
+					unset($sql, $prep_statement, $this->fields);
 			}
 
 			public function update() {
@@ -455,17 +550,22 @@ include "root.php";
 					if (!$this->db) {
 						$this->connect();
 					}
+				//sanitize the table name
+					$this->table = preg_replace('#[^a-zA-Z0-9_\-]#', '', $this->table);
 				//udate the database
 					$sql = "update ".$this->table." set ";
 					$i = 1;
 					if (is_array($this->fields)) {
 						foreach($this->fields as $name => $value) {
+							$name = preg_replace('#[^a-zA-Z0-9_\-]#', '', $name);
 							if (count($this->fields) == $i) {
 								if (strlen($name) > 0 && $value == null) {
 									$sql .= $name." = null ";
 								}
 								else {
-									$sql .= $name." = '".$value."' ";
+									//$sql .= $name." = '".$value."' ";
+									$sql .= $name." = :".$name." ";
+									$params[$name] = $value;
 								}
 							}
 							else {
@@ -473,7 +573,9 @@ include "root.php";
 									$sql .= $name." = null, ";
 								}
 								else {
-									$sql .= $name." = '".$value."', ";
+									//$sql .= $name." = '".$value."', ";
+									$sql .= $name." = :".$name.", ";
+									$params[$name] = $value;
 								}
 							}
 							$i++;
@@ -482,16 +584,46 @@ include "root.php";
 					$i = 0;
 					if (is_array($this->where)) {
 						foreach($this->where as $row) {
+
+							//sanitize the name
+							$row['name'] = preg_replace('#[^a-zA-Z0-9_\-]#', '', $row['name']);
+
+							//validate the operator
+							switch ($row['operator']) {
+								case "<": break;
+								case ">": break;
+								case "<=": break;
+								case ">=": break;
+								case "=": break;
+								case ">=": break;
+								case "<>": break;
+								case "!=": break;
+								default:
+									//invalid operator
+									return false;
+							}
+
+							//build the sql
 							if ($i == 0) {
-								$sql .= 'where '.$row['name']." ".$row['operator']." '".$row['value']."' ";
+								//$sql .= $row['name']." ".$row['operator']." '".$row['value']."' ";
+								$sql .= "where ".$row['name']." ".$row['operator']." :".$row['name']." ";
 							}
 							else {
-								$sql .= "and ".$row['name']." ".$row['operator']." '".$row['value']."' ";
+								//$sql .= $row['name']." ".$row['operator']." '".$row['value']."' ";
+								$sql .= "and ".$row['name']." ".$row['operator']." :".$row['name']." ";
 							}
+
+							//add the name and value to the params array
+							$params[$row['name']] = $row['value'];
+
+							//increment $i
 							$i++;
 						}
 					}
-					$this->db->exec(check_sql($sql));
+					//$this->db->exec(check_sql($sql));
+					$prep_statement = $this->db->prepare($sql);
+					$prep_statement->execute($params);
+					unset($prep_statement);
 					unset($this->fields);
 					unset($this->where);
 					unset($sql);
@@ -503,26 +635,54 @@ include "root.php";
 						$this->connect();
 					}
 
+				//sanitize the table name
+					$this->table = preg_replace('#[^a-zA-Z0-9_\-]#', '', $this->table);
+
 				//delete from the database
 					if (isset($this->table) && isset($this->where)) {
-						$sql = "delete from ".$this->table." ";
 						$i = 0;
+						$sql = "delete from ".$this->table." ";
 						if (is_array($this->where)) {
 							foreach($this->where as $row) {
+								//sanitize the name
+								$row['name'] = preg_replace('#[^a-zA-Z0-9_\-]#', '', $row['name']);
+
+								//validate the operator
+								switch ($row['operator']) {
+									case "<": break;
+									case ">": break;
+									case "<=": break;
+									case ">=": break;
+									case "=": break;
+									case ">=": break;
+									case "<>": break;
+									case "!=": break;
+									default:
+										//invalid operator
+										return false;
+								}
+
+								//build the sql
 								if ($i == 0) {
-									$sql .= "where ".$row['name']." ".$row['operator']." '".$row['value']."' ";
+									//$sql .= $row['name']." ".$row['operator']." '".$row['value']."' ";
+									$sql .= "where ".$row['name']." ".$row['operator']." :".$row['name']." ";
 								}
 								else {
-									$sql .= "and ".$row['name']." ".$row['operator']." '".$row['value']."' ";
+									//$sql .= $row['name']." ".$row['operator']." '".$row['value']."' ";
+									$sql .= "and ".$row['name']." ".$row['operator']." :".$row['name']." ";
 								}
+
+								//add the name and value to the params array
+								$params[$row['name']] = $row['value'];
+
+								//increment $i
 								$i++;
 							}
 						}
 						//echo $sql."<br>\n";
 						$prep_statement = $this->db->prepare($sql);
-						$prep_statement->execute();
-						unset($sql);
-						unset($this->where);
+						$prep_statement->execute($params);
+						unset($sql, $this->where);
 						return;
 					}
 
@@ -546,7 +706,7 @@ include "root.php";
 					$this->debug["sql"] = true;
 
 				//start the atomic transaction
-//					$this->db->beginTransaction();
+					//$this->db->beginTransaction();
 
 				//debug info
 					//echo "<pre>\n";
@@ -579,12 +739,11 @@ include "root.php";
 					}
 					*/
 
-//-------------------
 				//loop through the array
 					if (is_array($new_array)) {
 						foreach ($new_array as $schema_name => $schema_array) {
 
-							$this->name = $schema_name;
+							$this->name = preg_replace('#[^a-zA-Z0-9_\-]#', '', $schema_name);
 							if (is_array($schema_array)) {
 								foreach ($schema_array as $schema_id => $array) {
 
@@ -596,8 +755,7 @@ include "root.php";
 										//determine if the parent_key_exists
 										$parent_key_exists = false;
 										if (isset($array[$parent_key_name])) {
-											$this->uuid = $array[$parent_key_name];
-											$parent_key_value = $this->uuid;
+											$parent_key_value = $array[$parent_key_name];
 											$parent_key_exists = true;
 										}
 										else {
@@ -623,7 +781,7 @@ include "root.php";
 									//get the data before the delete
 										if ($parent_key_exists) {
 											$sql = "SELECT * FROM ".$table_name." ";
-											$sql .= "WHERE ".$parent_key_name." = '".$this->uuid."' ";
+											$sql .= "WHERE ".$parent_key_name." = '".$parent_key_value."' ";
 											$prep_statement = $this->db->prepare($sql);
 											if ($prep_statement) {
 												//get the data
@@ -704,7 +862,7 @@ include "root.php";
 											}
 											else {
 												$message["name"] = $this->name;
-												$message["message"] = "Forbidden";
+												$message["message"] = "Forbidden, does not have '".$this->singular($this->name)."_delete'";
 												$message["code"] = "403";
 												$message["line"] = __line__;
 												$this->message = $message;
@@ -791,14 +949,14 @@ include "root.php";
 																	if (permission_exists($child_name.'_delete')) {
 																		$sql = "DELETE FROM ".$table_name." ";
 																		$sql .= "WHERE ".$child_key_name." = '".$child_key_value."' ";
-																		if (strlen($this->uuid) > 0) { $sql .= "AND ".$parent_key_name." = '".$this->uuid."' "; }
+																		if (strlen($parent_key_value) > 0) { $sql .= "AND ".$parent_key_name." = '".$parent_key_value."' "; }
 																		//$sql = "DELETE FROM :table_name ";
 																		//$sql .= "WHERE :child_key_name = ':child_key_value' ";
-																		//if (strlen($this->uuid) > 0) { $sql .= "AND :parent_key_name = ':parent_key_value' }";
+																		//if (strlen($parent_key_value) > 0) { $sql .= "AND :parent_key_name = ':parent_key_value' }";
 																		//$statement = $this->db->prepare($sql);
 																		//$statement->bindParam(':table_name', $table_name);
 																		//$statement->bindParam(':parent_key_name', $parent_key_name);
-																		//$statement->bindParam(':parent_key_value', $this->uuid);
+																		//$statement->bindParam(':parent_key_value', $parent_key_value);
 																		//$statement->bindParam(':child_key_name', $child_key_name);
 																		//$statement->bindParam(':child_key_value', $child_key_value);
 																		$this->db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
@@ -832,7 +990,7 @@ include "root.php";
 																	}
 																	else {
 																		$message["name"] = $child_name;
-																		$message["message"] = "Forbidden";
+																		$message["message"] = "Forbidden, does not have '${child_name}_delete'";
 																		$message["code"] = "403";
 																		$message["line"] = __line__;
 																		$this->message = $message;
@@ -871,10 +1029,10 @@ include "root.php";
 					$this->message = $message;
 
 				//commit the atomic transaction
-//					$this->db->commit();
+					//$this->db->commit();
 
-				//get the domain uuid
-					$domain_uuid = $_SESSION['domain_uuid'];
+				//get the UUIDs
+					$user_uuid = $_SESSION['user_uuid'];
 
 				//log the transaction results
 					if (file_exists($_SERVER["PROJECT_ROOT"]."/app/database_transactions/app_config.php")) {
@@ -882,8 +1040,10 @@ include "root.php";
 						$sql .= "(";
 						$sql .= "database_transaction_uuid, ";
 						$sql .= "domain_uuid, ";
-						$sql .= "user_uuid, ";
-						if (isset($this->app_uuid)) {
+						if (strlen($user_uuid) > 0) {
+							$sql .= "user_uuid, ";
+						}
+						if (strlen($this->app_uuid) > 0) {
 							$sql .= "app_uuid, ";
 						}
 						$sql .= "app_name, ";
@@ -898,9 +1058,11 @@ include "root.php";
 						$sql .= "values ";
 						$sql .= "(";
 						$sql .= "'".uuid()."', ";
-						$sql .= "'".$domain_uuid."', ";
-						$sql .= "'".$_SESSION['user_uuid']."', ";
-						if (isset($this->app_uuid)) {
+						$sql .= "'".$this->domain_uuid."', ";
+						if (strlen($user_uuid) > 0) {
+							$sql .= "'".$user_uuid."', ";
+						}
+						if (strlen($this->app_uuid) > 0) {
 							$sql .= "'".$this->app_uuid."', ";
 						}
 						$sql .= "'".$this->app_name."', ";
@@ -918,30 +1080,60 @@ include "root.php";
 			} //delete
 
 			public function count() {
+
 				//connect to the database if needed
 					if (!$this->db) {
 						$this->connect();
 					}
+				//sanitize the table name
+					$this->table = preg_replace('#[^a-zA-Z0-9_\-]#', '', $this->table);
+
 				//get the number of rows
 					$sql = "select count(*) as num_rows from ".$this->table." ";
 					if ($this->where) {
 						$i = 0;
 						if (is_array($this->where)) {
 							foreach($this->where as $row) {
+								//sanitize the name
+								$row['name'] = preg_replace('#[^a-zA-Z0-9_\-]#', '', $row['name']);
+
+								//validate the operator
+								switch ($row['operator']) {
+									case "<": break;
+									case ">": break;
+									case "<=": break;
+									case ">=": break;
+									case "=": break;
+									case ">=": break;
+									case "<>": break;
+									case "!=": break;
+									default:
+										//invalid operator
+										return false;
+								}
+
+								//build the sql
 								if ($i == 0) {
-									$sql .= "where ".$row['name']." ".$row['operator']." '".$row['value']."' ";
+									//$sql .= $row['name']." ".$row['operator']." '".$row['value']."' ";
+									$sql .= "where ".$row['name']." ".$row['operator']." :".$row['name']." ";
 								}
 								else {
-									$sql .= "and ".$row['name']." ".$row['operator']." '".$row['value']."' ";
+									//$sql .= $row['name']." ".$row['operator']." '".$row['value']."' ";
+									$sql .= "and ".$row['name']." ".$row['operator']." :".$row['name']." ";
 								}
+
+								//add the name and value to the params array
+								$params[$row['name']] = $row['value'];
+
+								//increment $i
 								$i++;
 							}
 						}
 					}
 					unset($this->where);
-					$prep_statement = $this->db->prepare(check_sql($sql));
+					$prep_statement = $this->db->prepare($sql);
 					if ($prep_statement) {
-						$prep_statement->execute();
+						$prep_statement->execute($params);
 						$row = $prep_statement->fetch(PDO::FETCH_ASSOC);
 						if ($row['num_rows'] > 0) {
 							return $row['num_rows'];
@@ -951,6 +1143,7 @@ include "root.php";
 						}
 					}
 					unset($prep_statement);
+
 			} //count
 
 			public function select($sql) {
@@ -1000,10 +1193,10 @@ include "root.php";
 					}
 				//set the name
 					if (isset($array['name'])) {
-						$this->name = $array['name'];
+						$this->name = preg_replace('#[^a-zA-Z0-9_\-]#', '', $array['name']);
 					}
 				//set the uuid
-					if (isset($array['uuid'])) {
+					if (isset($array['uuid']) and $this->is_uuid($array['uuid'])) {
 						$this->uuid = $array['uuid'];
 					}
 				//build the query
@@ -1017,32 +1210,59 @@ include "root.php";
 							$i = 0;
 							if (is_array($array)) {
 								foreach($array['where'] as $row) {
+									//sanitize the name
+									$array['name'] = preg_replace('#[^a-zA-Z0-9_\-]#', '', $array['name']);
+
+									//validate the operator
+									switch ($row['operator']) {
+										case "<": break;
+										case ">": break;
+										case "<=": break;
+										case ">=": break;
+										case "=": break;
+										case ">=": break;
+										case "<>": break;
+										case "!=": break;
+										default:
+											//invalid operator
+											return false;
+									}
+
+									//build the sql
 									if ($i == 0) {
-										$sql .= "WHERE ".$row['name']." ".$row['operator']." '".$row['value']."' ";
+										//$sql .= "WHERE ".$row['name']." ".$row['operator']." '".$row['value']."' ";
+										$sql .= "WHERE ".$row['name']." ".$row['operator']." :".$row['value']." ";
 									}
 									else {
-										$sql .= "AND ".$row['name']." ".$row['operator']." '".$row['value']."' ";
+										//$sql .= "AND ".$row['name']." ".$row['operator']." '".$row['value']."' ";
+										$sql .= "AND ".$row['name']." ".$row['operator']." :".$row['value']." ";
 									}
+
+									//add the name and value to the params array
+									$params[$row['name']] = $row['value'];
+
+									//increment $i
 									$i++;
 								}
 							}
 						//order by
-							if (is_array($array['order_by'])) {
+							if (isset($array['order_by'])) {
+								$array['order_by'] = preg_replace('#[^a-zA-Z0-9_\-]#', '', $array['order_by']);
 								$sql .= "ORDER BY ".$array['order_by']." ";
 							}
 						//limit
-							if (isset($array['limit'])) {
+							if (isset($array['limit']) && is_numeric($array['limit'])) {
 								$sql .= "LIMIT ".$array['limit']." ";
 							}
 						//offset
-							if (isset($array['offset'])) {
+							if (isset($array['offset']) && is_numeric($array['offset'])) {
 								$sql .= "OFFSET ".$array['offset']." ";
 							}
 					}
 				//execute the query, and return the results
 					try {
-						$prep_statement = $this->db->prepare(check_sql($sql));
-						$prep_statement->execute();
+						$prep_statement = $this->db->prepare($sql);
+						$prep_statement->execute($params);
 						$message["message"] = "OK";
 						$message["code"] = "200";
 						$message["details"][$m]["name"] = $this->name;
@@ -1134,30 +1354,30 @@ include "root.php";
 					$this->debug["sql"] = true;
 
 				//start the atomic transaction
-//					$this->db->beginTransaction();
+					$this->db->beginTransaction();
 
 				//debug info
 					//echo "<pre>\n";
 					//print_r($new_array);
 					//echo "</pre>\n";
 					//exit;
-//------------------------------------------
+
 				//loop through the array
 					if (is_array($new_array)) foreach ($new_array as $schema_name => $schema_array) {
 
-						$this->name = $schema_name;
+						$this->name = preg_replace('#[^a-zA-Z0-9_\-]#', '', $schema_name);
 						if (is_array($schema_array)) foreach ($schema_array as $schema_id => $array) {
 
 							//set the variables
 								$table_name = "v_".$this->name;
 								$parent_key_name = $this->singular($this->name)."_uuid";
+								$parent_key_name = preg_replace('#[^a-zA-Z0-9_\-]#', '', $parent_key_name);
 
 							//if the uuid is set then set parent key exists and value 
 								//determine if the parent_key_exists
 								$parent_key_exists = false;
 								if (isset($array[$parent_key_name])) {
-									$this->uuid = $array[$parent_key_name];
-									$parent_key_value = $this->uuid;
+									$parent_key_value = $array[$parent_key_name];
 									$parent_key_exists = true;
 								}
 								else {
@@ -1170,18 +1390,21 @@ include "root.php";
 									}
 								}
 
+							//allow characters found in the uuid only.
+								$parent_key_value = preg_replace('#[^a-zA-Z0-9_\-]#', '', $parent_key_value);
+
 							//get the parent field names
 								$parent_field_names = array();
 								if (is_array($array)) foreach ($array as $key => $value) {
 									if (!is_array($value)) {
-										$parent_field_names[] = $key;
+										$parent_field_names[] = preg_replace('#[^a-zA-Z0-9_\-]#', '', $key);
 									}
 								}
 
 							//determine action update or delete and get the original data
 								if ($parent_key_exists) {
 									$sql = "SELECT ".implode(", ", $parent_field_names)." FROM ".$table_name." ";
-									$sql .= "WHERE ".$parent_key_name." = '".$this->uuid."' ";
+									$sql .= "WHERE ".$parent_key_name." = '".$parent_key_value."' ";
 									$prep_statement = $this->db->prepare($sql);
 									if ($prep_statement) {
 										//get the data
@@ -1216,6 +1439,7 @@ include "root.php";
 
 									if (permission_exists($this->singular($this->name).'_add')) {
 
+											$params = array();
 											$sql = "INSERT INTO v_".$this->name." ";
 											$sql .= "(";
 											if (!$parent_key_exists) {
@@ -1226,7 +1450,8 @@ include "root.php";
 											//}
 											if (is_array($array)) foreach ($array as $array_key => $array_value) {
 												if (!is_array($array_value)) {
-													$sql .= check_str($array_key).", ";
+													$array_key = preg_replace('#[^a-zA-Z0-9_\-]#', '', $array_key);
+													$sql .= $array_key.", ";
 												}
 											}
 											$sql .= ") ";
@@ -1240,16 +1465,26 @@ include "root.php";
 													if (strlen($array_value) == 0) {
 														$sql .= "null, ";
 													}
+													elseif ($array_value === "now()") {
+														$sql .= "now(), ";
+													}
 													else {
-														$sql .= "'".check_str($array_value)."', ";
+														//$sql .= "'".check_str($array_value)."', ";
+														$sql .= ':'.$array_key.", ";
+														$params[$array_key] = $array_value;
 													}
 												}
 											}
 											$sql .= ");";
 											$sql = str_replace(", )", ")", $sql);
+
 											$this->db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
 											try {
-												$this->db->query(check_sql($sql));
+												//$this->db->query(check_sql($sql));
+												$prep_statement = $this->db->prepare($sql);
+												$prep_statement->execute($params);
+												unset($prep_statement);
 												$message["message"] = "OK";
 												$message["code"] = "200";
 												$message["uuid"] = $parent_key_value;
@@ -1259,7 +1494,11 @@ include "root.php";
 												$message["details"][$m]["uuid"] = $parent_key_value;
 												if ($this->debug["sql"]) {
 													$message["details"][$m]["sql"] = $sql;
+													if (is_array($params)) {
+														$message["details"][$m]["params"] = $params;
+													}
 												}
+												unset($params);
 												$this->message = $message;
 												$m++;
 											}
@@ -1269,9 +1508,14 @@ include "root.php";
 												$message["details"][$m]["name"] = $this->name;
 												$message["details"][$m]["message"] = $e->getMessage();
 												$message["details"][$m]["code"] = "400";
+												$message["details"][$m]["array"] = $array;
 												if ($this->debug["sql"]) {
 													$message["details"][$m]["sql"] = $sql;
+													if (is_array($params)) {
+														$message["details"][$m]["params"] = $params;
+													}
 												}
+												unset($params);
 												$this->message = $message;
 												$m++;
 											}
@@ -1279,7 +1523,7 @@ include "root.php";
 									}
 									else {
 										$message["name"] = $this->name;
-										$message["message"] = "Forbidden";
+										$message["message"] = "Forbidden, does not have '".$this->singular($this->name)."_add'";
 										$message["code"] = "403";
 										$message["line"] = __line__;
 										$this->message[] = $message;
@@ -1292,15 +1536,22 @@ include "root.php";
 									if (permission_exists($this->singular($this->name).'_edit')) {
 
 										//parent data
+											$params = array();
 											$sql = "UPDATE v_".$this->name." SET ";
 											if (is_array($array)) {
 												foreach ($array as $array_key => $array_value) {
 													if (!is_array($array_value) && $array_key != $parent_key_name) {
+														$array_key = preg_replace('#[^a-zA-Z0-9_\-]#', '', $array_key);
 														if (strlen($array_value) == 0) {
-															$sql .= check_str($array_key)." = null, ";
+															$sql .= $array_key." = null, ";
+														}
+														elseif ($array_value === "now()") {
+															$sql .= $array_key." = now(), ";
 														}
 														else {
-															$sql .= check_str($array_key)." = '".check_str($array_value)."', ";
+															//$sql .= $array_key." = '".check_str($array_value)."', ";
+															$sql .= $array_key." = :".$array_key.", ";
+															$params[$array_key] = $array_value;
 														}
 													}
 												}
@@ -1309,7 +1560,9 @@ include "root.php";
 											$sql = str_replace(", WHERE", " WHERE", $sql);
 											$this->db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 											try {
-												$this->db->query(check_sql($sql));
+												$prep_statement = $this->db->prepare($sql);
+												$prep_statement->execute($params);
+												//$this->db->query(check_sql($sql));
 												$message["message"] = "OK";
 												$message["code"] = "200";
 												$message["uuid"] = $parent_key_value;
@@ -1319,7 +1572,11 @@ include "root.php";
 												$message["details"][$m]["uuid"] = $parent_key_value;
 												if ($this->debug["sql"]) {
 													$message["details"][$m]["sql"] = $sql;
+													if (is_array($params)) {
+														$message["details"][$m]["params"] = $params;
+													}
 												}
+												unset($params);
 												$this->message = $message;
 												$m++;
 												unset($sql);
@@ -1332,14 +1589,18 @@ include "root.php";
 												$message["details"][$m]["code"] = "400";
 												if ($this->debug["sql"]) {
 													$message["details"][$m]["sql"] = $sql;
+													if (is_array($params)) {
+														$message["details"][$m]["params"] = $params;
+													}
 												}
+												unset($params);
 												$this->message = $message;
 												$m++;
 											}
 									}
 									else {
 										$message["name"] = $this->name;
-										$message["message"] = "Forbidden";
+										$message["message"] = "Forbidden, does not have '".$this->singular($this->name)."_edit'";
 										$message["code"] = "403";
 										$message["line"] = __line__;
 										$this->message = $message;
@@ -1355,11 +1616,13 @@ include "root.php";
 
 									if (is_array($value)) {
 											$table_name = "v_".$key;
+											$table_name = preg_replace('#[^a-zA-Z0-9_\-]#', '', $table_name);
 											foreach ($value as $id => $row) {
 												//prepare the variables
 													$child_name = $this->singular($key);
+													$child_name = preg_replace('#[^a-zA-Z0-9_\-]#', '', $child_name);
 													$child_key_name = $child_name."_uuid";
-			
+
 												//determine if the parent key exists in the child array
 													$parent_key_exists = false;
 													if (!isset($array[$parent_key_name])) {
@@ -1381,11 +1644,14 @@ include "root.php";
 														}
 													}
 
+												//allow characters found in the uuid only.
+													$child_key_value = preg_replace('#[^a-zA-Z0-9_\-]#', '', $child_key_value);
+
 												//get the child field names
 													$child_field_names = array();
 													if (is_array($row)) foreach ($row as $k => $v) {
 														if (!is_array($v)) {
-															$child_field_names[] = $k;
+															$child_field_names[] = preg_replace('#[^a-zA-Z0-9_\-]#', '', $k);
 														}
 													}
 
@@ -1422,29 +1688,44 @@ include "root.php";
 															$sql = "UPDATE ".$table_name." SET ";
 															if (is_array($row)) {
 																foreach ($row as $k => $v) {
-																	//if (!is_array($v) && $k != $child_key_name) { //original
 																	if (!is_array($v) && ($k != $parent_key_name || $k != $child_key_name)) {
+																		$k = preg_replace('#[^a-zA-Z0-9_\-]#', '', $k);
 																		if (strlen($v) == 0) {
-																			$sql .= check_str($k)." = null, ";
+																			$sql .= $k." = null, ";
+																		}
+																		elseif ($v === "now()") {
+																			$sql .= $k." = now(), ";
 																		}
 																		else {
-																			$sql .= check_str($k)." = '".check_str($v)."', ";
+																			//$sql .= "$k = '".check_str($v)."', ";
+																			$sql .= $k." = :".$k.", ";
+																			$params[$k] = $v;
 																		}
 																	}
 																}
 															}
-															$sql .= "WHERE ".$parent_key_name." = '".$this->uuid."' ";
+															$sql .= "WHERE ".$parent_key_name." = '".$parent_key_value."' ";
 															$sql .= "AND ".$child_key_name." = '".$child_key_value."' ";
 															$sql = str_replace(", WHERE", " WHERE", $sql);
 															$this->db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+															//$prep_statement->bindParam(':domain_uuid', $this->domain_uuid );
+
 															try {
-																$this->db->query(check_sql($sql));
+																//$this->db->query(check_sql($sql));
+																$prep_statement = $this->db->prepare($sql);
+																$prep_statement->execute($params);
+																unset($prep_statement);
 																$message["details"][$m]["name"] = $key;
 																$message["details"][$m]["message"] = "OK";
 																$message["details"][$m]["code"] = "200";
 																$message["details"][$m]["uuid"] = $child_key_value;
 																if ($this->debug["sql"]) {
 																	$message["details"][$m]["sql"] = $sql;
+																	if (is_array($params)) {
+																		$message["details"][$m]["params"] = $params;
+																		unset($params);
+																	}
 																}
 																$this->message = $message;
 																$m++;
@@ -1459,6 +1740,10 @@ include "root.php";
 																$message["details"][$m]["code"] = "400";
 																if ($this->debug["sql"]) {
 																	$message["details"][$m]["sql"] = $sql;
+																	if (is_array($params)) {
+																		$message["details"][$m]["params"] = $params;
+																		unset($params);
+																	}
 																}
 																$this->message = $message;
 																$m++;
@@ -1466,7 +1751,7 @@ include "root.php";
 														}
 														else {
 															$message["name"] = $child_name;
-															$message["message"] = "Forbidden";
+															$message["message"] = "Forbidden, does not have '${child_name}_edit'";
 															$message["code"] = "403";
 															$message["line"] = __line__;
 															$this->message = $message;
@@ -1478,7 +1763,7 @@ include "root.php";
 												if ($action == "add") {
 													if (permission_exists($child_name.'_add')) {
 														//determine if child or parent key exists
-														$child_key_name = $this->singular($child_name).'_uuid';
+														$child_key_name = $child_name.'_uuid';
 														$parent_key_exists = false;
 														$child_key_exists = false;
 														if (is_array($row)) {
@@ -1507,7 +1792,8 @@ include "root.php";
 														if (is_array($row)) {
 															foreach ($row as $k => $v) {
 																if (!is_array($v)) {
-																	$sql .= check_str($k).", ";
+																	$k = preg_replace('#[^a-zA-Z0-9_\-]#', '', $k);
+																	$sql .= $k.", ";
 																}
 															}
 														}
@@ -1526,8 +1812,14 @@ include "root.php";
 																	if (strlen($v) == 0) {
 																		$sql .= "null, ";
 																	}
+																	elseif ($v === "now()") {
+																		$sql .= "now(), ";
+																	}
 																	else {
-																		$sql .= "'".check_str($v)."', ";
+																		$k = preg_replace('#[^a-zA-Z0-9_\-]#', '', $k);
+																		//$sql .= "'".check_str($v)."', ";
+																		$sql .= ':'.$k.", ";
+																		$params[$k] = $v;
 																	}
 																}
 															}
@@ -1536,13 +1828,20 @@ include "root.php";
 														$sql = str_replace(", )", ")", $sql);
 														$this->db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 														try {
-															$this->db->query(check_sql($sql));
+															//$this->db->query(check_sql($sql));
+															$prep_statement = $this->db->prepare($sql);
+															$prep_statement->execute($params);
+															unset($prep_statement);
 															$message["details"][$m]["name"] = $key;
 															$message["details"][$m]["message"] = "OK";
 															$message["details"][$m]["code"] = "200";
 															$message["details"][$m]["uuid"] = $child_key_value;
 															if ($this->debug["sql"]) {
 																$message["details"][$m]["sql"] = $sql;
+																if (is_array($params)) {
+																	$message["details"][$m]["params"] = $params;
+																	unset($params);
+																}
 															}
 															$this->message = $message;
 															$m++;
@@ -1557,6 +1856,10 @@ include "root.php";
 															$message["details"][$m]["code"] = "400";
 															if ($this->debug["sql"]) {
 																$message["details"][$m]["sql"] = $sql;
+																if (is_array($params)) {
+																	$message["details"][$m]["params"] = $params;
+																	unset($params);
+																}
 															}
 															$this->message = $message;
 															$m++;
@@ -1564,7 +1867,7 @@ include "root.php";
 													}
 													else {
 														$message["name"] = $child_name;
-														$message["message"] = "Forbidden";
+														$message["message"] = "Forbidden, does not have '${child_name}_add'";
 														$message["code"] = "403";
 														$message["line"] = __line__;
 														$this->message = $message;
@@ -1599,10 +1902,10 @@ include "root.php";
 					$this->message = $message;
 
 				//commit the atomic transaction
-//					$this->db->commit();
+					$this->db->commit();
 
-				//get the domain uuid
-					$domain_uuid = $_SESSION['domain_uuid'];
+				//get the UUIDs
+					$user_uuid = $_SESSION['user_uuid'];
 
 				//log the transaction results
 					if (file_exists($_SERVER["PROJECT_ROOT"]."/app/database_transactions/app_config.php")) {
@@ -1610,8 +1913,10 @@ include "root.php";
 						$sql .= "(";
 						$sql .= "database_transaction_uuid, ";
 						$sql .= "domain_uuid, ";
-						$sql .= "user_uuid, ";
-						if (isset($this->app_uuid)) {
+						if (strlen($user_uuid) > 0) {
+							$sql .= "user_uuid, ";
+						}
+						if (strlen($this->app_uuid) > 0) {
 							$sql .= "app_uuid, ";
 						}
 						$sql .= "app_name, ";
@@ -1626,9 +1931,11 @@ include "root.php";
 						$sql .= "values ";
 						$sql .= "(";
 						$sql .= "'".uuid()."', ";
-						$sql .= "'".$domain_uuid."', ";
-						$sql .= "'".$_SESSION['user_uuid']."', ";
-						if (isset($this->app_uuid)) {
+						$sql .= "'".$this->domain_uuid."', ";
+						if (strlen($user_uuid) > 0) {
+							$sql .= "'".$user_uuid."', ";
+						}
+						if (strlen($this->app_uuid) > 0) {
 							$sql .= "'".$this->app_uuid."', ";
 						}
 						$sql .= "'".$this->app_name."', ";
@@ -1786,11 +2093,9 @@ include "root.php";
 		require_once "resources/classes/database.php";
 		$database = new database;
 		$database->domain_uuid = $_SESSION["domain_uuid"];
-		$database->type = $db_type;
 		$database->table = "v_ivr_menus";
 		$fields[0]['name'] = 'domain_uuid';
 		$fields[0]['value'] = $_SESSION["domain_uuid"];
-		$database->add();
-		print_r($database->result);
+		echo $database->count();
 */
 ?>

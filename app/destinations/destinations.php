@@ -17,22 +17,26 @@
 
 	The Initial Developer of the Original Code is
 	Mark J Crane <markjcrane@fusionpbx.com>
-	Portions created by the Initial Developer are Copyright (C) 2008-2015
+	Portions created by the Initial Developer are Copyright (C) 2008-2017
 	the Initial Developer. All Rights Reserved.
 
 	Contributor(s):
 	Mark J Crane <markjcrane@fusionpbx.com>
 */
-require_once "root.php";
-require_once "resources/require.php";
-require_once "resources/check_auth.php";
-if (permission_exists('destination_view')) {
-	//access granted
-}
-else {
-	echo "access denied";
-	exit;
-}
+
+//includes
+	require_once "root.php";
+	require_once "resources/require.php";
+	require_once "resources/check_auth.php";
+
+//check permissions
+	if (permission_exists('destination_view')) {
+		//access granted
+	}
+	else {
+		echo "access denied";
+		exit;
+	}
 
 //add multi-lingual support
 	$language = new text;
@@ -43,6 +47,14 @@ else {
 	$order_by = check_str($_GET["order_by"]);
 	$order = check_str($_GET["order"]);
 
+//set the type
+	if ($_GET['type'] == 'outbound') {
+		$destination_type = 'outbound';
+	}
+	else {
+		$destination_type = 'inbound';
+	}
+
 //includes and title
 	require_once "resources/header.php";
 	$document['title'] = $text['title-destinations'];
@@ -50,23 +62,18 @@ else {
 
 //get total destination count from the database
 	$sql = "select count(*) as num_rows from v_destinations ";
+	$sql .= "where destination_type = '".$destination_type."' ";
 	if ($_GET['showall'] && permission_exists('destination_all')) {
-		if (strlen($search) > 0) {
-			$sql .= "where ";
-		}
+		//show all
 	} else {
-		$sql .= "where domain_uuid = '".$domain_uuid."' ";
-		if (strlen($search) > 0) {
-			$sql .= "and ";
-		}
+		$sql .= "and (domain_uuid = '".$domain_uuid."' or domain_uuid is null) ";
 	}
 	if (strlen($search) > 0) {
-		$sql .= "(";
-		$sql .= "	destination_type like '%".$search."%' ";
-		$sql .= " 	or destination_number like '%".$search."%' ";
-		$sql .= " 	or destination_context like '%".$search."%' ";
+		$sql .= "and (";
+		$sql .= " 	destination_number like '%".$search."%' ";
+		$sql .= " 	or lower(destination_context) like '%".strtolower($search)."%' ";
 		$sql .= " 	or destination_enabled like '%".$search."%' ";
-		$sql .= " 	or destination_description like '%".$search."%' ";
+		$sql .= " 	or lower(destination_description) like '%".strtolower($search)."%' ";
 		$sql .= ") ";
 	}
 	$prep_statement = $db->prepare($sql);
@@ -92,23 +99,18 @@ else {
 
 //get the list
 	$sql = "select * from v_destinations ";
+	$sql .= "where destination_type = '".$destination_type."' ";
 	if ($_GET['showall'] && permission_exists('destination_all')) {
-		if (strlen($search) > 0) {
-			$sql .= " where ";
-		}
+		//show all
 	} else {
-		$sql .= "where domain_uuid = '$domain_uuid' ";
-		if (strlen($search) > 0) {
-			$sql .= " and ";
-		}
+		$sql .= "and (domain_uuid = '".$domain_uuid."' or domain_uuid is null) ";
 	}
 	if (strlen($search) > 0) {
-		$sql .= " (";
-		$sql .= "	destination_type like '%".$search."%' ";
-		$sql .= " 	or destination_number like '%".$search."%' ";
-		$sql .= " 	or destination_context like '%".$search."%' ";
+		$sql .= " and (";
+		$sql .= " 	destination_number like '%".$search."%' ";
+		$sql .= " 	or lower(destination_context) like '%".strtolower($search)."%' ";
 		$sql .= " 	or destination_enabled like '%".$search."%' ";
-		$sql .= " 	or destination_description like '%".$search."%' ";
+		$sql .= " 	or lower(destination_description) like '%".strtolower($search)."%' ";
 		$sql .= ") ";
 	}
 	if (strlen($order_by) > 0) {
@@ -134,6 +136,13 @@ else {
 	echo "		<td width='50%' align='left' nowrap='nowrap' valign='top'><b>".$text['header-destinations']." (".$num_rows.")</b></td>\n";
 	echo "			<form method='get' action=''>\n";
 	echo "			<td width='50%' align='right'>\n";
+
+	if ($_GET['type'] == 'outbound') {
+		echo "		<input type='button' class='btn' value='".$text['button-inbound']."' onclick=\"window.location='destinations.php?type=inbound';\">\n";
+	} else {
+		echo "		<input type='button' class='btn' value='".$text['button-outbound']."' onclick=\"window.location='destinations.php?type=outbound';\">\n";
+	}
+
 	if (permission_exists('destination_all')) {
 		if ($_GET['showall'] == 'true') {
 			echo "		<input type='hidden' name='showall' value='true'>";
@@ -141,6 +150,10 @@ else {
 		else {
 			echo "		<input type='button' class='btn' value='".$text['button-show_all']."' onclick=\"window.location='destinations.php?showall=true';\">\n";
 		}
+	}
+
+	if (permission_exists('destination_import') && file_exists($_SERVER["PROJECT_ROOT"]."/destinations/destination_import.php")) {
+		echo 				"<input type='button' class='btn' alt='".$text['button-import']."' onclick=\"window.location='destination_import.php'\" value='".$text['button-import']."'>\n";
 	}
 	echo "				<input type='text' class='txt' style='width: 150px' name='search' value='".$search."'>";
 	echo "				<input type='submit' class='btn' name='submit' value='".$text['button-search']."'>";
@@ -171,7 +184,7 @@ else {
 	echo "<td class='list_control_icons'>";
 	if (permission_exists('destination_add')) {
 		if ($_SESSION['limit']['destinations']['numeric'] == '' || ($_SESSION['limit']['destinations']['numeric'] != '' && $num_rows < $_SESSION['limit']['destinations']['numeric'])) {
-			echo "<a href='destination_edit.php' alt='".$text['button-add']."'>".$v_link_label_add."</a>";
+			echo "<a href='destination_edit.php?type=".$destination_type."' alt='".$text['button-add']."'>".$v_link_label_add."</a>";
 		}
 	}
 	echo "</td>\n";
@@ -212,7 +225,7 @@ else {
 	}
 	if (permission_exists('destination_add')) {
 		if ($_SESSION['limit']['destinations']['numeric'] == '' || ($_SESSION['limit']['destinations']['numeric'] != '' && $num_rows < $_SESSION['limit']['destinations']['numeric'])) {
-			echo "<a href='destination_edit.php' alt='".$text['button-add']."'>".$v_link_label_add."</a>";
+			echo "<a href='destination_edit.php?type=".$destination_type."' alt='".$text['button-add']."'>".$v_link_label_add."</a>";
 		}
 	}
 	echo "</td>\n";
@@ -225,4 +238,5 @@ else {
 
 //include the footer
 	require_once "resources/footer.php";
+
 ?>

@@ -17,7 +17,7 @@
 
 	The Initial Developer of the Original Code is
 	Mark J Crane <markjcrane@fusionpbx.com>
-	Portions created by the Initial Developer are Copyright (C) 2008-2015
+	Portions created by the Initial Developer are Copyright (C) 2008-2016
 	the Initial Developer. All Rights Reserved.
 
 	Contributor(s):
@@ -25,8 +25,10 @@
 	Luis Daniel Lucio Quiroz <dlucio@okay.com.mx>
 	Riccardo Granchi <riccardo.granchi@nems.it>
 */
-require_once "root.php";
-require_once "resources/require.php";
+
+//includes
+	require_once "root.php";
+	require_once "resources/require.php";
 
 //get the event socket information
 	if (file_exists($_SERVER["PROJECT_ROOT"]."/app/settings/app_config.php")) {
@@ -379,58 +381,60 @@ function save_gateway_xml() {
 }
 
 function save_var_xml() {
-	global $config, $domain_uuid;
+	if (is_array($_SESSION['switch']['conf'])) {
+		global $config, $domain_uuid;
 
-	//get the database connection
-	require_once "resources/classes/database.php";
-	$database = new database;
-	$database->connect();
-	$db = $database->db;
+		//get the database connection
+		require_once "resources/classes/database.php";
+		$database = new database;
+		$database->connect();
+		$db = $database->db;
 
-	//open the vars.xml file
-	$fout = fopen($_SESSION['switch']['conf']['dir']."/vars.xml","w");
+		//open the vars.xml file
+		$fout = fopen($_SESSION['switch']['conf']['dir']."/vars.xml","w");
 
-	//get the hostname
-	$hostname = trim(event_socket_request_cmd('api switchname'));
+		//get the hostname
+		$hostname = trim(event_socket_request_cmd('api switchname'));
 
-	//build the xml
-	$sql = "select * from v_vars ";
-	$sql .= "where var_enabled = 'true' ";
-	$sql .= "order by var_cat, var_order asc ";
-	$prep_statement = $db->prepare(check_sql($sql));
-	$prep_statement->execute();
-	$prev_var_cat = '';
-	$result = $prep_statement->fetchAll(PDO::FETCH_ASSOC);
-	$xml = '';
-	foreach ($result as &$row) {
-		if ($row['var_cat'] != 'Provision') {
-			if ($prev_var_cat != $row['var_cat']) {
-				$xml .= "\n<!-- ".$row['var_cat']." -->\n";
-				if (strlen($row["var_description"]) > 0) {
-					$xml .= "<!-- ".base64_decode($row['var_description'])." -->\n";
+		//build the xml
+		$sql = "select * from v_vars ";
+		$sql .= "where var_enabled = 'true' ";
+		$sql .= "order by var_cat, var_order asc ";
+		$prep_statement = $db->prepare(check_sql($sql));
+		$prep_statement->execute();
+		$prev_var_cat = '';
+		$result = $prep_statement->fetchAll(PDO::FETCH_ASSOC);
+		$xml = '';
+		foreach ($result as &$row) {
+			if ($row['var_cat'] != 'Provision') {
+				if ($prev_var_cat != $row['var_cat']) {
+					$xml .= "\n<!-- ".$row['var_cat']." -->\n";
+					if (strlen($row["var_description"]) > 0) {
+						$xml .= "<!-- ".base64_decode($row['var_description'])." -->\n";
+					}
+				}
+
+				if ($row['var_cat'] == 'Exec-Set') { $var_cmd = 'exec-set'; } else { $var_cmd = 'set'; }
+				if (strlen($row['var_hostname']) == 0) {
+					$xml .= "<X-PRE-PROCESS cmd=\"".$var_cmd."\" data=\"".$row['var_name']."=".$row['var_value']."\" />\n";
+				} elseif ($row['var_hostname'] == $hostname) {
+					$xml .= "<X-PRE-PROCESS cmd=\"".$var_cmd."\" data=\"".$row['var_name']."=".$row['var_value']."\" />\n";
 				}
 			}
-
-			if ($row['var_cat'] == 'Exec-Set') { $var_cmd = 'exec-set'; } else { $var_cmd = 'set'; }
-			if (strlen($row['var_hostname']) == 0) {
-				$xml .= "<X-PRE-PROCESS cmd=\"".$var_cmd."\" data=\"".$row['var_name']."=".$row['var_value']."\" />\n";
-			} elseif ($row['var_hostname'] == $hostname) {
-				$xml .= "<X-PRE-PROCESS cmd=\"".$var_cmd."\" data=\"".$row['var_name']."=".$row['var_value']."\" />\n";
-			}
+			$prev_var_cat = $row['var_cat'];
 		}
-		$prev_var_cat = $row['var_cat'];
+		$xml .= "\n";
+		fwrite($fout, $xml);
+		unset($xml);
+		fclose($fout);
+
+		//apply settings
+		$_SESSION["reload_xml"] = true;
+
+		//$cmd = "api reloadxml";
+		//event_socket_request_cmd($cmd);
+		//unset($cmd);
 	}
-	$xml .= "\n";
-	fwrite($fout, $xml);
-	unset($xml);
-	fclose($fout);
-
-	//apply settings
-	$_SESSION["reload_xml"] = true;
-
-	//$cmd = "api reloadxml";
-	//event_socket_request_cmd($cmd);
-	//unset($cmd);
 }
 
 function outbound_route_to_bridge ($domain_uuid, $destination_number) {
@@ -642,7 +646,7 @@ function dialplan_add($domain_uuid, $dialplan_uuid, $dialplan_name, $dialplan_or
 	unset($sql);
 }
 
-function dialplan_detail_add($domain_uuid, $dialplan_uuid, $dialplan_detail_tag, $dialplan_detail_order, $dialplan_detail_group, $dialplan_detail_type, $dialplan_detail_data, $dialplan_detail_break, $dialplan_detail_inline) {
+function dialplan_detail_add($domain_uuid, $dialplan_uuid, $dialplan_detail_tag, $dialplan_detail_order, $dialplan_detail_group, $dialplan_detail_type, $dialplan_detail_data, $dialplan_detail_break = null, $dialplan_detail_inline = null) {
 
 	//get the database connection
 	require_once "resources/classes/database.php";
@@ -753,7 +757,7 @@ function save_dialplan_xml() {
 						unset ($prep_statement_2, $sql);
 
 						//create a new array that is sorted into groups and put the tags in order conditions, actions, anti-actions
-							$details = '';
+							$details = array();
 							$previous_tag = '';
 							$details[$group]['condition_count'] = '';
 							//conditions
@@ -1276,15 +1280,16 @@ if (!function_exists('switch_conf_xml')) {
 
 		//prepare the php variables
 			if (stristr(PHP_OS, 'WIN')) {
-				$bindir = find_php_by_extension();
-				if(!$bindir)
-					$bindir = getenv(PHPRC);
+				$php_bin = win_find_php('php.exe');
+				if(!$php_bin){ // relay on system path
+					$php_bin = 'php.exe';
+				}
 
 				$secure_path = path_join($_SERVER["DOCUMENT_ROOT"], PROJECT_PATH, 'secure');
 
 				$v_mail_bat = path_join($secure_path, 'mailto.bat');
 				$v_mail_cmd = '@' .
-					'"' . str_replace('/', '\\', path_join($bindir, 'php5.exe')) . '" ' .
+					'"' . str_replace('/', '\\', $php_bin) . '" ' .
 					'"' . str_replace('/', '\\', path_join($secure_path, 'v_mailto.php')) . '" ';
 
 				$fout = fopen($v_mail_bat, "w+");
@@ -1293,7 +1298,7 @@ if (!function_exists('switch_conf_xml')) {
 
 				$v_mailer_app = '"' .  str_replace('/', '\\', $v_mail_bat) . '"';
 				$v_mailer_app_args = "";
-				unset($v_mail_bat, $v_mail_cmd, $secure_path, $bindir, $fout);
+				unset($v_mail_bat, $v_mail_cmd, $secure_path, $php_bin, $fout);
 			}
 			else {
 				if (file_exists(PHP_BINDIR.'/php')) { define("PHP_BIN", "php"); }
@@ -1506,6 +1511,7 @@ if(!function_exists('path_join')) {
 				else $prefix = '';
 			}
 			$path = trim( $path, '/' );
+			$path = trim( $path, '\\' );
 		}
 
 		if($prefix === null){
@@ -1518,22 +1524,75 @@ if(!function_exists('path_join')) {
 	}
 }
 
-if(!function_exists('find_php_by_extension')) {
-	// Tested on WAMP and OpenServer
-	function find_php_by_extension(){
-		$bin_dir = get_cfg_var('extension_dir');
-
-		while($bin_dir){
-			$bin_dir = dirname($bin_dir);
-			$php_bin = path_join($bin_dir, 'php.exe');
-			if(file_exists($php_bin))
-				break;
+if(!function_exists('win_find_php')) {
+	function win_find_php_in_root($root, $bin){
+		while(true) {
+			$php_bin = path_join($root, $bin);
+			if(file_exists($php_bin)){
+				$php_bin = str_replace('/', '\\', $php_bin);
+				return $php_bin;
+			}
+			$prev_root = $root;
+			$root = dirname($root);
+			if((!$root)&&($prev_root == $root)){
+				return false;
+			}
 		}
+	}
 
-		if(!$bin_dir)
+	//Tested on WAMP and OpenServer
+	//Can get wrong result if `extension_dir` set as relative path.
+	function win_find_php_by_extension($bin_name){
+		$bin_dir = get_cfg_var('extension_dir');
+		return win_find_php_in_root($bin_dir, $bin_name);
+	}
+
+	// Works since PHP 5.4
+	function win_find_php_by_binary($bin_name){
+		if(!defined('PHP_BINARY')){
 			return false;
+		}
+		$bin_dir = realpath(PHP_BINARY);
+		if(!$bin_dir){
+			$bin_dir = PHP_BINARY;
+		}
+		$bin_dir = dirname($bin_dir);
+		return win_find_php_in_root($bin_dir, $bin_name);
+	}
 
-		return $bin_dir;
+	function win_find_php_by_phprc($bin_name){
+		$bin_dir = getenv(PHPRC);
+		if(!$bin_dir){
+			return false;
+		}
+		$bin_dir = realpath($bin_dir);
+		return win_find_php_in_root($bin_dir, $bin_name);
+	}
+
+	//on Windows PHP_BIN set in compile time to c:\php
+	//It possible redifine it in env, but not all installation do it
+	function win_find_php_by_bin($bin_name){
+		if(!defined('PHP_BIN')){
+			return false;
+		}
+		$bin_dir = realpath(PHP_BIN);
+		if(!$bin_dir){
+			$bin_dir = PHP_BIN;
+		}
+		$bin_dir = dirname($bin_dir);
+		return win_find_php_in_root($bin_dir, $bin_name);
+	}
+
+	function win_find_php($bin_name){
+		$php_bin = win_find_php_by_binary($bin_name);
+		if($php_bin) return $php_bin;
+		$php_bin = win_find_php_by_extension($bin_name);
+		if($php_bin) return $php_bin;
+		$php_bin = win_find_php_by_bin($bin_name);
+		if($php_bin) return $php_bin;
+		$php_bin = win_find_php_by_phprc($bin_name);
+		if($php_bin) return $php_bin;
+		return false;
 	}
 }
 

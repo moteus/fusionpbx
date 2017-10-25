@@ -28,6 +28,7 @@
 	require_once "root.php";
 	require_once "resources/functions.php";
 	require_once "resources/classes/text.php";
+	require_once "resources/classes/messages.php";
 
 //start a php session
 	if (!isset($_SESSION)) { session_start(); }
@@ -257,7 +258,7 @@
 		include "resources/page_parts/install_config_database.php";
 	}
 	elseif($install_step == 'execute'){
-		echo "<p><b>".$text['header-installing'][$install_language]."</b></p>\n";
+		echo "<p><b>".$text['header-installing']."</b></p>\n";
 		//$protocol = 'http';
 		//if($_SERVER['HTTPS']) { $protocol = 'https'; }
 		//echo "<iframe src='$protocol://$domain_name/core/install/install_first_time.php' style='border:solid 1px #000;width:100%;height:auto'></iframe>";
@@ -354,10 +355,26 @@
 //set a default template
 	$default_template = 'default';
 	$_SESSION['domain']['template']['name'] = $default_template;
-	$set_session_theme = 1;
-	$domains_processed = 1;
-	include "themes/$default_template/app_defaults.php";
-	unset($set_session_theme, $domains_processed);
+    $x = 0;
+	include "themes/$default_template/app_config.php";
+    $_SESSION['theme'] = Array();
+    foreach ($apps as $app_id => $data) {
+        foreach ($apps[$app_id]['default_settings'] as $index => $default_setting) {
+            $sub_category = $default_setting['default_setting_subcategory'];
+            $name = $default_setting['default_setting_name'];
+            if($default_setting['default_setting_enabled'] == 'true'){
+                if($name == 'array'){
+                    $_SESSION['theme'][$sub_category][(isset($default_setting['default_setting_order']) ? $default_setting['default_setting_order'] : null)] = $default_setting['default_setting_value'];
+                }
+                else {
+                    $_SESSION['theme'][$sub_category][$name] = $default_setting['default_setting_value'];
+                }
+            }else{
+                $_SESSION['theme'][$sub_category][$name] = '';
+            }
+        }
+    }
+	unset($apps, $x);
 	$_SESSION['theme']['menu_brand_type']['text'] = "text";
 
 //set the default template path

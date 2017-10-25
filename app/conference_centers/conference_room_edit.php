@@ -24,16 +24,20 @@
 	Mark J Crane <markjcrane@fusionpbx.com>
 	Luis Daniel Lucio Quiroz <dlucio@okay.com.mx>
 */
-require_once "root.php";
-require_once "resources/require.php";
-require_once "resources/check_auth.php";
-if (permission_exists('conference_room_add') || permission_exists('conference_room_edit')) {
-	//access granted
-}
-else {
-	echo "access denied";
-	exit;
-}
+
+//includes
+	require_once "root.php";
+	require_once "resources/require.php";
+	require_once "resources/check_auth.php";
+
+//check permissions
+	if (permission_exists('conference_room_add') || permission_exists('conference_room_edit')) {
+		//access granted
+	}
+	else {
+		echo "access denied";
+		exit;
+	}
 
 //add multi-lingual support
 	$language = new text;
@@ -86,6 +90,19 @@ else {
 		$conference_center_uuid = $conference_centers[0]["conference_center_uuid"];
 	}
 
+//get the conference profiles
+	$sql = "select * ";
+	$sql .= "from v_conference_profiles ";
+	$sql .= "where profile_enabled = 'true' ";
+	$sql .= "and profile_name <> 'sla' ";
+	$prep_statement = $db->prepare(check_sql($sql));
+	$prep_statement->execute();
+	$conference_profiles = $prep_statement->fetchAll(PDO::FETCH_NAMED);
+	unset ($prep_statement, $sql);
+
+//set the default
+	if ($profile === "") { $profile = "default"; }
+
 //define fucntion get_meeting_pin - used to find a unique pin number
 	function get_meeting_pin($length, $meeting_uuid) {
 		global $db;
@@ -113,7 +130,7 @@ else {
 			$default_language = 'en';
 			$default_dialect = 'us';
 			$default_voice = 'callie';
-			$switch_cmd = "conference ".$meeting_uuid."-".$_SESSION['domain_name']." play ".$_SESSION['switch']['sounds']['dir']."/".$default_language."/".$default_dialect."/".$default_voice."/ivr/ivr-recording_started.wav";
+			$switch_cmd = "conference ".$meeting_uuid."@".$_SESSION['domain_name']." play ".$_SESSION['switch']['sounds']['dir']."/".$default_language."/".$default_dialect."/".$default_voice."/ivr/ivr-recording_started.wav";
 		//connect to event socket
 			$fp = event_socket_create($_SESSION['event_socket_ip_address'], $_SESSION['event_socket_port'], $_SESSION['event_socket_password']);
 			if ($fp) {
@@ -154,7 +171,7 @@ else {
 				unset($sql);
 		}
 
-		$_SESSION["message"] = $text['message-delete'];
+		messages::add($text['message-delete']);
 		header("Location: conference_room_edit.php?id=".$conference_room_uuid);
 		return;
 	}
@@ -343,7 +360,7 @@ if (count($_POST) > 0 && strlen($_POST["persistformvar"]) == 0) {
 						unset($sql);
 					}
 
-				$_SESSION["message"] = $text['message-add'];
+				messages::add($text['message-add']);
 			} //if ($action == "add")
 
 			if ($action == "update" && permission_exists('conference_room_edit')) {
@@ -409,7 +426,7 @@ if (count($_POST) > 0 && strlen($_POST["persistformvar"]) == 0) {
 					$db->exec(check_sql($sql));
 					unset($sql);
 
-				$_SESSION["message"] = $text['message-update'];
+				messages::add($text['message-update']);
 			} //if ($action == "update")
 
 			//assign the user to the meeting
@@ -433,7 +450,7 @@ if (count($_POST) > 0 && strlen($_POST["persistformvar"]) == 0) {
 					$db->exec(check_sql($sql));
 					unset($sql);
 
-					$_SESSION["message"] = $text['message-add'];
+					messages::add($text['message-add']);
 				}
 
 			header("Location: conference_room_edit.php?id=".$conference_room_uuid);
@@ -632,7 +649,16 @@ if (count($_POST) > 0 && strlen($_POST["persistformvar"]) == 0) {
 		echo "<tr>\n";
 		echo "<td class='vncellreq' valign='top' align='left' nowrap='nowrap'>".$text['label-profile']."</td>\n";
 		echo "<td class='vtable' align='left'>\n";
-		echo "	<input class='formfld' type='text' name='profile' maxlength='255' value='$profile'>\n";
+		echo "	<select class='formfld' name='profile'>\n";
+		foreach ($conference_profiles as $row) {
+			if ($profile === $row['profile_name']) {
+					echo "	<option value='". $row['profile_name'] ."' selected='selected'>". $row['profile_name'] ."</option>\n";
+			}
+			else {
+					echo "	<option value='". $row['profile_name'] ."'>". $row['profile_name'] ."</option>\n";
+			}
+		}
+		echo "	</select>\n";
 		echo "	<br />\n";
 		echo "	".$text['description-profile']."\n";
 		echo "</td>\n";

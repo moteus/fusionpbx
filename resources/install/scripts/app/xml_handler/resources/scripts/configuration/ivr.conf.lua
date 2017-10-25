@@ -1,6 +1,6 @@
 --      xml_handler.lua
 --      Part of FusionPBX
---      Copyright (C) 2016 Mark J Crane <markjcrane@fusionpbx.com>
+--      Copyright (C) 2016-2017 Mark J Crane <markjcrane@fusionpbx.com>
 --      All rights reserved.
 --
 --      Redistribution and use in source and binary forms, with or without
@@ -30,14 +30,17 @@
 	local log = require "resources.functions.log".ivr_menu
 
 --get the cache
-	if (trim(api:execute("module_exists", "mod_memcache")) == "true") then
-		XML_STRING = trim(api:execute("memcache", "get configuration:ivr.conf:" .. ivr_menu_uuid));
-	else
-		XML_STRING = "-ERR NOT FOUND";
-	end
+	local cache = require "resources.functions.cache"
+	local ivr_menu_cache_key = "configuration:ivr.conf:" .. ivr_menu_uuid
+	XML_STRING, err = cache.get(ivr_menu_cache_key)
 
 --set the cache
-	if (XML_STRING == "-ERR NOT FOUND" or XML_STRING == "-ERR CONNECTION FAILURE") then
+	if not XML_STRING  then
+		--log cache error
+			if (debug["cache"]) then
+				freeswitch.consoleLog("warning", "[xml_handler] " .. ivr_menu_cache_key .. " can not be get from memcache: " .. tostring(err) .. "\n");
+			end
+
 		--required includes
 			local Database = require "resources.functions.database"
 			local Settings = require "resources.functions.lazy_settings"
@@ -110,7 +113,8 @@
 
 				--function to get recording to local fs
 					local function load_record(name)
-						local path, is_base64 = base_path .. "/" .. name
+						local path = base_path .. "/" .. name;
+						local is_base64 = false;
 
 						if not file_exists(path) then
 							local sql = "SELECT recording_base64 FROM v_recordings " .. 
@@ -122,16 +126,14 @@
 							end
 
 							dbh:query(sql, params, function(row)
-							--get full path to recording
-								is_base64, name = true, path
-
-							--save the recording to the file system
+								--save the recording to the file system
 								if #row.recording_base64 > 32 then
+									is_base64 = true;
 									file.write_base64(path, row.recording_base64);
+									--add the full path and file name
+									name = path;
 								end
 							end);
-						else
-							name = path
 						end
 						return name, is_base64
 					end
@@ -249,7 +251,7 @@
 			if (ivr_menu_direct_dial == "true") then
 				table.insert(xml, [[					<entry action="menu-exec-app" digits="/^(\d{2,11})$/" param="set ${cond(${user_exists id $1 ]]..domain_name..[[} == true ? user_exists=true : user_exists=false)}" description="direct dial"/>\n]]);
 				table.insert(xml, [[					<entry action="menu-exec-app" digits="/^(\d{2,11})$/" param="playback ${cond(${user_exists} == true ? ]]..sound_prefix..[[ivr/ivr-call_being_transferred.wav : ]]..sound_prefix..[[ivr/ivr-that_was_an_invalid_entry.wav)}" description="direct dial"/>\n]]);
-				table.insert(xml, [[					<entry action="menu-exec-app" digits="/^(\d{2,11})$/" param="transfer ${cond(${user_exists} == true ? $1 XML ]]..domain_name..[[ : ]]..ivr_menu_extension..[[ XML ]]..domain_name..[[)}" description="direct dial"/>\n]]);
+				table.insert(xml, [[					<entry action="menu-exec-app" digits="/^(\d{2,11})$/" param="transfer ${cond(${user_exists} == true ? $1 XML ]]..domain_name..[[)}" description="direct dial"/>\n]]);
 			end
 
 		--close the extension tag if it was left open
@@ -268,25 +270,30 @@
 			--freeswitch.consoleLog("notice", "[xml_handler]"..api:execute("eval ${dsn}"));
 
 		--set the cache
-			result = trim(api:execute("memcache", "set configuration:ivr.conf:".. ivr_menu_uuid .." '"..XML_STRING:gsub("'", "&#39;").."' "..expire['ivr']));
+			local ok, err = cache.set(ivr_menu_uuid, XML_STRING, expire["ivr"]);
+			if debug["cache"] then
+				if ok then
+					freeswitch.consoleLog("notice", "[xml_handler] " .. ivr_menu_uuid .. " stored in memcache\n");
+				else
+					freeswitch.consoleLog("warning", "[xml_handler] " .. ivr_menu_uuid .. " can not be stored in memcache: " .. tostring(err) .. "\n");
+				end
+			end
 
 		--send the xml to the console
 			if (debug["xml_string"]) then
-				local file = assert(io.open(temp_dir .. "/ivr.conf.xml", "w"));
+				local file = assert(io.open(temp_dir .. "/ivr-"..ivr_menu_uuid..".conf.xml", "w"));
 				file:write(XML_STRING);
 				file:close();
 			end
 
 		--send to the console
 			if (debug["cache"]) then
-				freeswitch.consoleLog("notice", "[xml_handler] configuration:ivr.conf:" .. ivr_menu_uuid .." source: database\n");
+				freeswitch.consoleLog("notice", "[xml_handler] " .. ivr_menu_cache_key .. " source: database\n");
 			end
 
 	else
-		--replace the &#39 back to a single quote
-			XML_STRING = XML_STRING:gsub("&#39;", "'");
 		--send to the console
 			if (debug["cache"]) then
-				freeswitch.consoleLog("notice", "[xml_handler] configuration:ivr.conf" .. ivr_menu_uuid .." source: memcache\n");
+				freeswitch.consoleLog("notice", "[xml_handler] " .. ivr_menu_cache_key .. " source: memcache\n");
 			end
 	end --if XML_STRING

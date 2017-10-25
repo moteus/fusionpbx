@@ -82,7 +82,7 @@ class destinations {
 			}
 			$this->destinations[$x]['type'] = 'array';
 			$this->destinations[$x]['label'] = 'other';
-			$this->destinations[$x]['name'] = 'dialplan';
+			$this->destinations[$x]['name'] = 'dialplans';
 			$this->destinations[$x]['field']['name'] = "name";
 			$this->destinations[$x]['field']['destination'] = "destination";
 			$this->destinations[$x]['select_value']['dialplan'] = "transfer:\${destination}";
@@ -129,6 +129,9 @@ class destinations {
 		//remove special characters from the name
 			$destination_id = str_replace("]", "", $destination_name);
 			$destination_id = str_replace("[", "_", $destination_id);
+
+		//set the css style
+			$select_style = 'width: 200px;';
 
 		//add additional
 			if (if_group("superadmin")) {

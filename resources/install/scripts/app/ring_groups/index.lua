@@ -1,5 +1,5 @@
 --	Part of FusionPBX
---	Copyright (C) 2010-2016 Mark J Crane <markjcrane@fusionpbx.com>
+--	Copyright (C) 2010-2017 Mark J Crane <markjcrane@fusionpbx.com>
 --	All rights reserved.
 --
 --	Redistribution and use in source and binary forms, with or without
@@ -27,6 +27,7 @@
 --	Mark J Crane <markjcrane@fusionpbx.com>
 --	Luis Daniel Lucio Qurioz <dlucio@okay.com.mx>
 
+--include the log
 local log = require "resources.functions.log".ring_group
 
 --connect to the database
@@ -47,13 +48,63 @@ local log = require "resources.functions.log".ring_group
 	require "resources.functions.channel_utils"
 	require "resources.functions.format_ringback"
 
+--define the session hangup
+	function session_hangup_hook()
+
+		--send info to the log
+			--freeswitch.consoleLog("notice","[ring_groups] originate_disposition: " .. session:getVariable("originate_disposition") .. "\n");
+
+		--status
+			status = 'answered'
+
+		--run the missed called function
+			if (
+				session:getVariable("originate_disposition")  == "ALLOTTED_TIMEOUT"
+				or session:getVariable("originate_disposition") == "NO_ANSWER"
+				or session:getVariable("originate_disposition") == "NO_USER_RESPONSE"
+				or session:getVariable("originate_disposition") == "USER_NOT_REGISTERED"
+				or session:getVariable("originate_disposition") == "NORMAL_TEMPORARY_FAILURE"
+				or session:getVariable("originate_disposition") == "NO_ROUTE_DESTINATION"
+				or session:getVariable("originate_disposition") == "USER_BUSY"
+				or session:getVariable("originate_disposition") == "RECOVERY_ON_TIMER_EXPIRE"
+				or session:getVariable("originate_disposition") == "failure"
+				or session:getVariable("originate_disposition") == "ORIGINATOR_CANCEL"
+			) then
+				--set the status
+					status = 'missed'
+				--send missed call notification
+					missed();
+			end
+
+		--send the ring group event
+		    event = freeswitch.Event("CUSTOM", "RING_GROUPS");
+			event:addHeader("domain_uuid", domain_uuid);
+			event:addHeader("domain_name", domain_name);
+			event:addHeader("ring_group_uuid", ring_group_uuid);
+			event:addHeader("user_uuid", user_uuid);
+			event:addHeader("ring_group_name", ring_group_name);
+			event:addHeader("ring_group_extension", ring_group_extension);
+			event:addHeader("status", status);
+			event:addHeader("call_uuid", uuid);
+			event:addHeader("caller_id_name", caller_id_name);
+			event:addHeader("caller_id_number", caller_id_number);
+			event:fire();
+
+	end
+
+--set the hangup hook function
+	if (session:ready()) then
+		session:setHangupHook("session_hangup_hook");
+	end
+
 --get the variables
+	if (session:ready()) then
+		session:setAutoHangup(false);
 	domain_name = session:getVariable("domain_name");
+		domain_uuid = session:getVariable("domain_uuid");
 	ring_group_uuid = session:getVariable("ring_group_uuid");
 	recordings_dir = session:getVariable("recordings_dir");
 	sounds_dir = session:getVariable("sounds_dir");
-
---variables that don't require ${} when used in the dialplan conditions
 	username = session:getVariable("username");
 	dialplan = session:getVariable("dialplan");
 	caller_id_name = session:getVariable("caller_id_name");
@@ -67,10 +118,21 @@ local log = require "resources.functions.log".ring_group
 	uuid = session:getVariable("uuid");
 	context = session:getVariable("context");
 	call_direction = session:getVariable("call_direction");
+	end
 
 --default to local if nil
 	if (call_direction == nil) then
 		call_direction = "local";
+	end
+
+---set the call_timeout to a higher value to prevent the early timeout of the ring group
+	if (session:ready()) then
+		session:setVariable("call_timeout","300");
+	end
+
+--set ring ready
+	if (session:ready()) then
+		session:execute("ring_ready", "");
 	end
 
 --define additional variables
@@ -78,12 +140,14 @@ local log = require "resources.functions.log".ring_group
 	external = "false";
 
 --set the sounds path for the language, dialect and voice
+	if (session:ready()) then
 	default_language = session:getVariable("default_language");
 	default_dialect = session:getVariable("default_dialect");
 	default_voice = session:getVariable("default_voice");
 	if (not default_language) then default_language = 'en'; end
 	if (not default_dialect) then default_dialect = 'us'; end
 	if (not default_voice) then default_voice = 'callie'; end
+	end
 
 --get record_ext
 	record_ext = session:getVariable("record_ext");
@@ -109,33 +173,44 @@ local log = require "resources.functions.log".ring_group
 --get the ring group
 	ring_group_forward_enabled = "";
 	ring_group_forward_destination = "";
-	sql = "SELECT * FROM v_ring_groups ";
-	sql = sql .. "where ring_group_uuid = :ring_group_uuid ";
+	sql = "SELECT r.* FROM v_ring_groups as r ";
+	sql = sql .. "where r.ring_group_uuid = :ring_group_uuid ";
 	local params = {ring_group_uuid = ring_group_uuid};
 	status = dbh:query(sql, params, function(row)
-		domain_uuid = row["domain_uuid"];
 		ring_group_name = row["ring_group_name"];
 		ring_group_extension = row["ring_group_extension"];
 		ring_group_forward_enabled = row["ring_group_forward_enabled"];
 		ring_group_forward_destination = row["ring_group_forward_destination"];
+		ring_group_forward_toll_allow = row["ring_group_forward_toll_allow"];
 		ring_group_cid_name_prefix = row["ring_group_cid_name_prefix"];
 		ring_group_cid_number_prefix = row["ring_group_cid_number_prefix"];
 		missed_call_app = row["ring_group_missed_call_app"];
 		missed_call_data = row["ring_group_missed_call_data"];
 	end);
 
+--get the ring group user
+	sql = "SELECT r.*, u.user_uuid FROM v_ring_groups as r, v_ring_group_users as u ";
+	sql = sql .. "where r.ring_group_uuid = :ring_group_uuid ";
+	sql = sql .. "and r.ring_group_uuid = u.ring_group_uuid ";
+	local params = {ring_group_uuid = ring_group_uuid};
+	status = dbh:query(sql, params, function(row)
+		user_uuid = row["user_uuid"];
+	end);
+
 --set the caller id
 	if (session:ready()) then
-		if (string.len(ring_group_cid_name_prefix) > 0) then
-			session:execute("set", "effective_caller_id_name="..ring_group_cid_name_prefix.."#"..caller_id_name);
+		if (ring_group_cid_name_prefix ~= nil) then
+			session:execute("export", "effective_caller_id_name="..ring_group_cid_name_prefix.."#"..caller_id_name);
 		end
-		if (string.len(ring_group_cid_number_prefix) > 0) then
-			session:execute("set", "effective_caller_id_number="..ring_group_cid_number_prefix..caller_id_number);
+		if (ring_group_cid_number_prefix ~= nil) then
+			session:execute("export", "effective_caller_id_number="..ring_group_cid_number_prefix..caller_id_number);
 		end
 	end
 
 --check the missed calls
 	function missed()
+
+		--send missed call email
 		if (missed_call_app ~= nil and missed_call_data ~= nil) then
 			if (missed_call_app == "email") then
 				--set the sounds path for the language, dialect and voice
@@ -203,9 +278,33 @@ local log = require "resources.functions.log".ring_group
 		end
 	end
 
+--get the destination and follow the forward
+	function get_forward_all(count, destination_number, domain_name)
+		cmd = "user_exists id ".. destination_number .." "..domain_name;
+		freeswitch.consoleLog("notice", "[ring groups][call forward all] " .. cmd .. "\n");
+		user_exists = api:executeString(cmd);
+		if (user_exists == "true") then
+			---check to see if the new destination is forwarded - third forward
+				cmd = "user_data ".. destination_number .."@" ..domain_name.." var forward_all_enabled";
+				if (api:executeString(cmd) == "true") then
+					--get the new destination - third foward
+						cmd = "user_data ".. destination_number .."@" ..domain_name.." var forward_all_destination";
+						destination_number = api:executeString(cmd);
+						freeswitch.consoleLog("notice", "[ring groups][call forward all] " .. count .. " " .. cmd .. " ".. destination_number .."\n");
+
+						count = count + 1;
+						if (count < 5) then
+							count, destination_number = get_forward_all(count, destination_number, domain_name);
+						end
+				end
+		end
+		return count, destination_number;
+	end
+
 --process the ring group
 	if (ring_group_forward_enabled == "true" and string.len(ring_group_forward_destination) > 0) then
 		--forward the ring group
+			session:setVariable("toll_allow",ring_group_forward_toll_allow);	
 			session:execute("transfer", ring_group_forward_destination.." XML "..context);
 	else
 		--get the strategy of the ring group, if random, we use random() to order the destinations
@@ -267,16 +366,45 @@ local log = require "resources.functions.log".ring_group
 				else
 					leg_domain_name = array[2];
 				end
-				cmd = "user_exists id ".. row.destination_number .." "..leg_domain_name;
+
+				--follow the forwards
+				count, destination_number = get_forward_all(0, row.destination_number, leg_domain_name);
+
+				--check if the user exists
+				cmd = "user_exists id ".. destination_number .." "..domain_name;
 				user_exists = api:executeString(cmd);
+
+				--cmd = "user_exists id ".. destination_number .." "..leg_domain_name;
 				if (user_exists == "true") then
 					--add user_exists true or false to the row array
 						row['user_exists'] = "true";
 					--handle do_not_disturb
-						cmd = "user_data ".. row.destination_number .."@" ..leg_domain_name.." var do_not_disturb";
+						cmd = "user_data ".. destination_number .."@" ..leg_domain_name.." var do_not_disturb";
 						if (api:executeString(cmd) ~= "true") then
 							--add the row to the destinations array
 							destinations[x] = row;
+						end
+					--determine if the user is registered if not registered then lookup 
+						cmd = "sofia_contact */".. destination_number .."@" ..leg_domain_name;
+						if (api:executeString(cmd) == "error/user_not_registered") then
+							cmd = "user_data ".. destination_number .."@" ..leg_domain_name.." var forward_user_not_registered_enabled";
+							if (api:executeString(cmd) == "true") then
+								--get the new destination number
+								cmd = "user_data ".. destination_number .."@" ..leg_domain_name.." var forward_user_not_registered_destination";
+								not_registered_destination_number = api:executeString(cmd);
+								if (not_registered_destination_number ~= nil) then
+--									destination_number = not_registered_destination_number;	
+								end
+
+								--check the new destination number for user_exists
+								cmd = "user_exists id ".. destination_number .." "..leg_domain_name;
+								user_exists = api:executeString(cmd);
+								if (user_exists == "true") then
+									row['user_exists'] = "true";
+				else
+									row['user_exists'] = "false";
+								end
+							end
 						end
 				else
 					--set the values
@@ -338,6 +466,13 @@ local log = require "resources.functions.log".ring_group
 					destination_timeout = row.destination_timeout;
 					destination_prompt = row.destination_prompt;
 					domain_name = row.domain_name;
+
+				--follow the forwards
+					count, destination_number = get_forward_all(0, destination_number, leg_domain_name);
+
+				--check if the user exists
+					cmd = "user_exists id ".. destination_number .." "..domain_name;
+					user_exists = api:executeString(cmd);
 
 				--set ringback
 					ring_group_ringback = format_ringback(ring_group_ringback);
@@ -469,18 +604,23 @@ local log = require "resources.functions.log".ring_group
 									y = 0;
 								end
 							end
+			
 							if (r.dialplan_detail_tag == "condition") then
 								if (r.dialplan_detail_type == "destination_number") then
+			dial_string = "regex m:~"..destination_number.."~"..r.dialplan_detail_data
 									if (api:execute("regex", "m:~"..destination_number.."~"..r.dialplan_detail_data) == "true") then
 										--get the regex result
 											destination_result = trim(api:execute("regex", "m:~"..destination_number.."~"..r.dialplan_detail_data.."~$1"));
 										--set match equal to true
-											regex_match = true
+											regex_match = true;
 									end
 								end
 							end
+--regex_match = true;
+--dial_string = r.dialplan_detail_data;
 							if (r.dialplan_detail_tag == "action") then
 								if (regex_match) then
+--dial_string = 'match';
 									--replace $1
 										dialplan_detail_data = r.dialplan_detail_data:gsub("$1", destination_result);
 									--if the session is set then process the actions
@@ -640,17 +780,14 @@ local log = require "resources.functions.log".ring_group
 								or session:getVariable("originate_disposition") == "NORMAL_TEMPORARY_FAILURE"
 								or session:getVariable("originate_disposition") == "NO_ROUTE_DESTINATION"
 								or session:getVariable("originate_disposition") == "USER_BUSY"
+								or session:getVariable("originate_disposition") == "RECOVERY_ON_TIMER_EXPIRE"
 								or session:getVariable("originate_disposition") == "failure"
 							) then
-								--send missed call notification
-									missed();
 								--execute the time out action
 									session:execute(ring_group_timeout_app, ring_group_timeout_data);
 							end
 						else
 							if (ring_group_timeout_app ~= nil) then
-								--send missed call notification
-									missed();
 								--execute the time out action
 									session:execute(ring_group_timeout_app, ring_group_timeout_data);
 							else
@@ -661,14 +798,13 @@ local log = require "resources.functions.log".ring_group
 									freeswitch.consoleLog("notice", "[ring group] SQL:" .. sql .. "; params:" .. json.encode(params) .. "\n");
 								end
 								dbh:query(sql, params, function(row)
-									--send missed call notification
-										missed();
 									--execute the time out action
 										session:execute(row.ring_group_timeout_app, row.ring_group_timeout_data);
 								end);
 							end
 						end
 				end
+		
 		end
 
 --actions

@@ -17,7 +17,7 @@
 
 	The Initial Developer of the Original Code is
 	Mark J Crane <markjcrane@fusionpbx.com>
-	Portions created by the Initial Developer are Copyright (C) 2008-2015
+	Portions created by the Initial Developer are Copyright (C) 2008-2017
 	the Initial Developer. All Rights Reserved.
 
 	Contributor(s):
@@ -165,6 +165,14 @@
 
 		//call forward config
 			if (permission_exists('call_forward')) {
+
+				//sanitize the destinations
+				$forward_all_destination = str_replace('$', '', $forward_all_destination);
+				$forward_busy_destination = str_replace('$', '', $forward_busy_destination);
+				$forward_no_answer_destination = str_replace('$', '', $forward_no_answer_destination);
+				$forward_user_not_registered_destination = str_replace('$', '', $forward_user_not_registered_destination);
+
+				//build the array
 				$extensions['domain_uuid'] = $_SESSION['domain_uuid'];
 				$extensions['extension_uuid'] = $extension_uuid;
 				$extensions['forward_all_enabled'] = $forward_all_enabled;
@@ -206,6 +214,11 @@
 					$destination_found = false;
 					foreach ($destinations as $field) {
 						if ($field['destination'] != '') {
+
+							//sanitize the destination
+							$field['destination'] = str_replace('$', '', $field['destination']);
+
+							//build the array
 							$follow_me['follow_me_destinations'][$d]['domain_uuid'] = $_SESSION['domain_uuid'];
 							$follow_me['follow_me_destinations'][$d]['follow_me_uuid'] = $follow_me_uuid;
 							$follow_me['follow_me_destinations'][$d]['follow_me_destination_uuid'] = $field['uuid'];
@@ -329,7 +342,7 @@
 			}
 
 		//redirect the user
-			$_SESSION["message"] = $text['confirm-update'];
+			messages::add($text['confirm-update']);
 			header("Location: ".$_REQUEST['return_url']);
 			return;
 
@@ -423,7 +436,7 @@
 	echo "</tr>\n";
 	echo "<tr>\n";
 	echo "<td align='left' colspan='2'>\n";
-	echo "	".$text['description']." <strong>".$extension."</strong><br /><br />\n";
+	echo "	".$text['description']." <strong>".escape($extension)."</strong><br /><br />\n";
 	echo "</td>\n";
 	echo "</tr>\n";
 
@@ -440,7 +453,7 @@
 	echo "	<label for='forward_all_enabled'><input type='radio' name='forward_all_enabled' id='forward_all_enabled' onclick=\"".$on_click."\" value='true' ".(($forward_all_enabled == "true") ? "checked='checked'" : null)." /> ".$text['label-enabled']."</label> \n";
 	unset($on_click);
 	echo "&nbsp;&nbsp;&nbsp;";
-	echo "	<input class='formfld' type='text' name='forward_all_destination' id='forward_all_destination' maxlength='255' placeholder=\"".$text['label-destination']."\" value=\"".$forward_all_destination."\">\n";
+	echo "	<input class='formfld' type='text' name='forward_all_destination' id='forward_all_destination' maxlength='255' placeholder=\"".$text['label-destination']."\" value=\"".escape($forward_all_destination)."\">\n";
 	echo "	<br />".$text['description-call_forward']."\n";
 	echo "</td>\n";
 	echo "</tr>\n";
@@ -456,7 +469,7 @@
 	echo "	<label for='forward_busy_enabled'><input type='radio' name='forward_busy_enabled' id='forward_busy_enabled' onclick=\"$on_click\" value='true' ".(($forward_busy_enabled == "true") ? "checked='checked'" : null)."/> ".$text['label-enabled']."</label> \n";
 	unset($on_click);
 	echo "&nbsp;&nbsp;&nbsp;";
-	echo "	<input class='formfld' type='text' name='forward_busy_destination' id='forward_busy_destination' maxlength='255' placeholder=\"".$text['label-destination']."\" value=\"".$forward_busy_destination."\">\n";
+	echo "	<input class='formfld' type='text' name='forward_busy_destination' id='forward_busy_destination' maxlength='255' placeholder=\"".$text['label-destination']."\" value=\"".escape($forward_busy_destination)."\">\n";
 	echo "	<br />".$text['description-on-busy']."\n";
 	echo "</td>\n";
 	echo "</tr>\n";
@@ -472,7 +485,7 @@
 	echo "	<label for='forward_no_answer_enabled'><input type='radio' name='forward_no_answer_enabled' id='forward_no_answer_enabled' onclick=\"$on_click\" value='true' ".(($forward_no_answer_enabled == "true") ? "checked='checked'" : null)."/> ".$text['label-enabled']."</label> \n";
 	unset($on_click);
 	echo "&nbsp;&nbsp;&nbsp;";
-	echo "	<input class='formfld' type='text' name='forward_no_answer_destination' id='forward_no_answer_destination' maxlength='255' placeholder=\"".$text['label-destination']."\" value=\"".$forward_no_answer_destination."\">\n";
+	echo "	<input class='formfld' type='text' name='forward_no_answer_destination' id='forward_no_answer_destination' maxlength='255' placeholder=\"".$text['label-destination']."\" value=\"".escape($forward_no_answer_destination)."\">\n";
 	echo "	<br />".$text['description-no_answer']."\n";
 	echo "</td>\n";
 	echo "</tr>\n";
@@ -487,7 +500,7 @@
 	echo "	<label for='forward_user_not_registered_enabled'><input type='radio' name='forward_user_not_registered_enabled' id='forward_user_not_registered_enabled' onclick=\"$on_click\" value='true' ".(($forward_user_not_registered_enabled == "true") ? "checked='checked'" : null)."/> ".$text['label-enabled']."</label> \n";
 	unset($on_click);
 	echo "&nbsp;&nbsp;&nbsp;";
-	echo "	<input class='formfld' type='text' name='forward_user_not_registered_destination' id='forward_user_not_registered_destination' maxlength='255' placeholder=\"".$text['label-destination']."\" value=\"".$forward_user_not_registered_destination."\">\n";
+	echo "	<input class='formfld' type='text' name='forward_user_not_registered_destination' id='forward_user_not_registered_destination' maxlength='255' placeholder=\"".$text['label-destination']."\" value=\"".escape($forward_user_not_registered_destination)."\">\n";
 	echo "	<br />".$text['description-not_registered']."\n";
 	echo "</td>\n";
 	echo "</tr>\n";
@@ -568,7 +581,7 @@
 	for ($n = 0; $n <= ((($_SESSION['follow_me']['max_destinations']['numeric'] != '') ? $_SESSION['follow_me']['max_destinations']['numeric'] : 5) - 1); $n++) {
 		echo "		<input type='hidden' name='destinations[".$n."][uuid]' value='".(($destinations[$n]['uuid'] != '') ? $destinations[$n]['uuid'] : uuid())."'>\n";
 		echo "		<tr>\n";
-		echo "			<td><input class='formfld' style='min-width: 135px;' type='text' name='destinations[".$n."][destination]' id='destination_".$n."' maxlength='255' value=\"".$destinations[$n]['destination']."\"></td>\n";
+		echo "			<td><input class='formfld' style='min-width: 135px;' type='text' name='destinations[".$n."][destination]' id='destination_".$n."' maxlength='255' value=\"".escape($destinations[$n]['destination'])."\"></td>\n";
 		echo "			<td>\n";
 								destination_select('destinations['.$n.'][delay]', $destinations[$n]['delay'], '0');
 		echo "			</td>\n";
@@ -700,4 +713,5 @@
 
 //include the footer
 	require_once "resources/footer.php";
+
 ?>

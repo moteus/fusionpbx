@@ -65,8 +65,7 @@
 			}
 			unset($prep_statement, $row);
 			if ($total_call_center_queues >= $_SESSION['limit']['call_center_queues']['numeric']) {
-				$_SESSION['message_mood'] = 'negative';
-				$_SESSION['message'] = $text['message-maximum_queues'].' '.$_SESSION['limit']['call_center_queues']['numeric'];
+				messages::add($text['message-maximum_queues'].' '.$_SESSION['limit']['call_center_queues']['numeric'], 'negative');
 				header('Location: call_center_queues.php');
 				return;
 			}
@@ -97,6 +96,7 @@
 			$queue_cid_prefix = check_str($_POST["queue_cid_prefix"]);
 			$queue_announce_sound = check_str($_POST["queue_announce_sound"]);
 			$queue_announce_frequency = check_str($_POST["queue_announce_frequency"]);
+			$queue_cc_exit_keys = check_str($_POST["queue_cc_exit_keys"]);
 			$queue_description = check_str($_POST["queue_description"]);
 
 		//replace the space in the queue name with a dash
@@ -223,6 +223,9 @@
 			if (strlen($queue_cid_prefix) > 0) {
 				$dialplan_xml .= "		<action application=\"set\" data=\"effective_caller_id_name=".$queue_cid_prefix."#\${caller_id_name}\"/>\n";
 			}
+			if (strlen($queue_cc_exit_keys) > 0) {
+				$dialplan_xml .= "		<action application=\"set\" data=\"cc_exit_keys=".$queue_cc_exit_keys."\"/>\n";
+			}
 			$dialplan_xml .= "		<action application=\"callcenter\" data=\"".$queue_name.'@'.$_SESSION['domain_name']."\"/>\n";
 			$dialplan_xml .= "		<action application=\"".$queue_timeout_application."\" data=\"".$queue_timeout_data."\"/>\n";
 			$dialplan_xml .= "	</condition>\n";
@@ -286,10 +289,10 @@
 		//redirect the user
 			if (isset($action)) {
 				if ($action == "add") {
-					$_SESSION["message"] = $text['message-add'];
+					messages::add($text['message-add']);
 				}
 				if ($action == "update") {
-					$_SESSION["message"] = $text['message-update'];
+					messages::add($text['message-update']);
 				}
 			}
 
@@ -377,6 +380,7 @@
 				$queue_cid_prefix = $row["queue_cid_prefix"];
 				$queue_announce_sound = $row["queue_announce_sound"];
 				$queue_announce_frequency = $row["queue_announce_frequency"];
+				$queue_cc_exit_keys = $row["queue_cc_exit_keys"];
 				$queue_description = $row["queue_description"];
 			}
 		}
@@ -574,8 +578,10 @@
 			//get agents
 			$sql = "select agent_name from v_call_center_agents ";
 			$sql .= "where domain_uuid = '".$_SESSION['domain_uuid']."' ";
-			foreach($assigned_agents as $assigned_agent) {
-				$sql .= "and agent_name <> '".$assigned_agent."' ";
+			if ($assigned_agents){
+				foreach($assigned_agents as $assigned_agent) {
+					$sql .= "and agent_name <> '".$assigned_agent."' ";
+				}
 			}
 			$sql .= "order by agent_name asc";
 			$prep_statement = $db->prepare(check_sql($sql));
@@ -643,8 +649,7 @@
 	echo "	".$text['label-record_template']."\n";
 	echo "</td>\n";
 	echo "<td class='vtable' align='left'>\n";
-	$record_ext=($_SESSION['record_ext']=='mp3'?'mp3':'wav');
-	$record_template = $_SESSION['switch']['recordings']['dir']."/".$_SESSION['domain_name']."/archive/\${strftime(%Y)}/\${strftime(%b)}/\${strftime(%d)}/\${uuid}.".$record_ext;
+	$record_template = $_SESSION['switch']['recordings']['dir']."/".$_SESSION['domain_name']."/archive/\${strftime(%Y)}/\${strftime(%b)}/\${strftime(%d)}/\${uuid}.\${record_ext}";
 	echo "	<select class='formfld' name='queue_record_template'>\n";
 	if (strlen($queue_record_template) > 0) {
 		echo "	<option value='$record_template' selected='selected' >".$text['option-true']."</option>\n";
@@ -882,6 +887,17 @@
 	echo $text['description-caller_announce_frequency']."\n";
 	echo "</td>\n";
 	echo "</tr>\n";
+
+	echo "<tr>\n";
+        echo "<td class='vncell' valign='top' align='left' nowrap>\n";
+       	echo "  ".$text['label-exit_keys']."\n";
+       	echo "</td>\n";
+       	echo "<td class='vtable' align='left'>\n";
+       	echo "  <input class='formfld' type='text' name='queue_cc_exit_keys' value='$queue_cc_exit_keys'>\n";
+       	echo "<br />\n";
+       	echo $text['description-exit_keys']."\n";
+       	echo "</td>\n";
+       	echo "</tr>\n";
 
 	echo "<tr>\n";
 	echo "<td class='vncell' valign='top' align='left' nowrap>\n";
