@@ -476,6 +476,12 @@
 							case "ogg" : $record_type = "audio/ogg"; break;
 						}
 					}
+					else{
+						$record_path = '';
+						$record_name = '';
+						$record_extension = '';
+						$record_type = '';
+					}
 				}
 
 			//recording playback
