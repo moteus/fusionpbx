@@ -312,7 +312,7 @@
 										$array["extensions"][$i]["number_alias"] = $number_alias;
 									}
 									$array["extensions"][$i]["password"] = $password;
-									if (if_group("superadmin") || if_group("admin")) {
+									if (permission_exists('extension_accountcode')) {
 										$array["extensions"][$i]["accountcode"] = $accountcode;
 									}
 									$array["extensions"][$i]["effective_caller_id_name"] = $effective_caller_id_name;
@@ -348,7 +348,7 @@
 									if (strlen($sip_force_expires) > 0) {
 										$array["extensions"][$i]["sip_force_expires"] = $sip_force_expires;
 									}
-									if (if_group("superadmin")) {
+									if (permission_exists('extension_nibble_account')) {
 										if (strlen($nibble_account) > 0) {
 											$array["extensions"][$i]["nibble_account"] = $nibble_account;
 										}
@@ -940,7 +940,7 @@
 		echo "</tr>\n";
 	}
 
-	if (if_group("superadmin") || if_group("admin")) {
+	if (permission_exists('extension_accountcode')) {
 			echo "<tr>\n";
 			echo "<td class='vncell' valign='top' align='left' nowrap='nowrap'>\n";
 			echo "    ".$text['label-accountcode']."\n";
@@ -1414,10 +1414,10 @@
 		echo "</td>\n";
 		echo "<td class='vtable' align='left'>\n";
 		if (is_array($_SESSION['toll allow']['name'])) {
-			echo "	<select class='formfld' name='toll_allow'>\n";
+			echo "	<select class='formfld' name='toll_allow' id='toll_allow'>\n";
 			echo "		<option value=''></option>\n";
 			foreach ($_SESSION['toll allow']['name'] as $name) {
-				if ($_SESSION['call group']['name'] == $call_group) {
+				if ($name == $toll_allow) {
 					echo "		<option value='$name' selected='selected'>$name</option>\n";
 				}
 				else {
@@ -1552,10 +1552,7 @@
 		echo "</tr>\n";
 	}
 
-	if (if_group("superadmin")) {
-		if (strlen($user_context) == 0) {
-			$user_context = $_SESSION['domain_name'];
-		}
+	if (permission_exists("extension_user_context")) {
 		echo "<tr>\n";
 		echo "<td class='vncellreq' valign='top' align='left' nowrap='nowrap'>\n";
 		echo "    ".$text['label-user_context']."\n";
@@ -1642,7 +1639,7 @@
 	echo "</td>\n";
 	echo "</tr>\n";
 
-	if (if_group("superadmin")) {
+	if (permission_exists('extension_nibble_account')) {
 		echo "<tr>\n";
 		echo "<td class='vncell' valign='top' align='left' nowrap='nowrap'>\n";
 		echo "    ".$text['label-nibble_account']."\n";
